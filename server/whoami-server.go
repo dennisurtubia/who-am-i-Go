@@ -16,8 +16,6 @@ func main() {
 	log.SetPrefix("[whoami-server] ")
 	log.Println("running on " + listener.Addr().String())
 
-	gManager := GameManager{lobbyPlayers: make([]Player, 0)}
-
 	cManager := ClientManager{
 		gManager:   &gManager,
 		clients:    make(map[*Client]bool),
@@ -25,6 +23,8 @@ func main() {
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 	}
+
+	gManager := GameManager{cManager: cManager}
 
 	go cManager.start()
 	go gManager.start()

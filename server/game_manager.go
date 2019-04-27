@@ -20,9 +20,11 @@ type Player struct {
 
 // GameManager a
 type GameManager struct {
+	cManager ClientManager
+
 	status        GameStatus
 	lobbyPlayers  []Player
-	inGameClients map[*Player]bool
+	inGamePlayers []Player
 
 	waitingFinish time.Time
 	gameFinish    time.Time
@@ -57,7 +59,7 @@ func (gManager *GameManager) setName(client *Client, name string) {
 		gManager.lobbyPlayers = append(gManager.lobbyPlayers, Player{client: client, name: name})
 		msg += "player_added"
 
-		//todo: broadcast
+		gManager.broadcastNewPlayer(name)
 	} else {
 		msg += "already_used"
 	}
@@ -65,10 +67,28 @@ func (gManager *GameManager) setName(client *Client, name string) {
 	client.data <- []byte(msg)
 }
 
+func (gManager *GameManager) broadcastNewPlayer(name string) {
+	gManager.cManager.broadcast <- []byte("new-player::" + name)
+}
+
 func (gManager *GameManager) start() {
 	fmt.Println("[GameManager] start")
 
-	gManager.status = WaitingForClients
-	gManager.waitingFinish = time.Now().Add(time.Minute * 2)
+	for {
+		gManager.status = WaitingForClients
+		gManager.waitingFinish = time.Now().Add(time.Minute * 2)
+		gManager.lobbyPlayers = make([]Player, 0)
+
+		time.Sleep(time.Minute * 2)
+
+		gManager.status = InGame
+		gManager.gameFinish = time.Now().Add(time.Minute * 8)
+		gManager.inGamePlayers = make([]Player, len(gManager.lobbyPlayers))
+		copy(gManager.inGamePlayers, gManager.lobbyPlayers)
+		gManager.lobbyPlayers = nil
+
+		gManager.cManager.broadcast <- []byte("game-start::" + strconv.FormatInt(gManager.gameFinish.UTC().UnixNano(), 10))
+
+	}
 
 }
