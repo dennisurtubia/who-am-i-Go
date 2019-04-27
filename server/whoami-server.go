@@ -2,26 +2,32 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net"
 )
 
 func main() {
-
-	fmt.Println("Starting server...")
 
 	listener, err := net.Listen("tcp4", ":8080")
 	if err != nil {
 		fmt.Println(err.Error())
 	}
 
-	manager := ClientManager{
+	log.SetPrefix("[whoami-server] ")
+	log.Println("running on " + listener.Addr().String())
+
+	gManager := GameManager{lobbyPlayers: make([]Player, 0)}
+
+	cManager := ClientManager{
+		gManager:   &gManager,
 		clients:    make(map[*Client]bool),
 		broadcast:  make(chan []byte),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 	}
 
-	go manager.start()
+	go cManager.start()
+	go gManager.start()
 
 	for {
 		connection, err := listener.Accept()
@@ -30,10 +36,10 @@ func main() {
 		}
 
 		client := &Client{socket: connection, data: make(chan []byte)}
-		manager.register <- client
+		cManager.register <- client
 
-		go manager.receive(client)
-		go manager.send(client)
+		go cManager.receive(client)
+		go cManager.send(client)
 
 	}
 
