@@ -3,10 +3,14 @@ package main
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
+	"time"
 )
 
 func main() {
+
+	rand.Seed(time.Now().UnixNano())
 
 	listener, err := net.Listen("tcp4", ":8080")
 	if err != nil {
@@ -17,14 +21,16 @@ func main() {
 	log.Println("running on " + listener.Addr().String())
 
 	cManager := ClientManager{
-		gManager:   &gManager,
 		clients:    make(map[*Client]bool),
 		broadcast:  make(chan []byte),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 	}
 
-	gManager := GameManager{cManager: cManager}
+	gManager := GameManager{}
+
+	cManager.gManager = &gManager
+	gManager.cManager = &cManager
 
 	go cManager.start()
 	go gManager.start()

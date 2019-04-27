@@ -88,6 +88,14 @@ func (cManager *ClientManager) receive(client *Client) {
 					{
 						cManager.gManager.setName(client, commands[1])
 					}
+
+				case "set-response":
+					{
+						response := commands[1]
+						tip := commands[2]
+
+						cManager.gManager.setResponse(client, response, tip)
+					}
 				}
 
 			}
