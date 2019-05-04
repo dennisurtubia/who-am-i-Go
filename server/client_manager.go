@@ -23,11 +23,11 @@ type Client struct {
 
 // ClientManager blabla
 type ClientManager struct {
-	gManager   *GameManager
-	clients    map[*Client]bool
-	broadcast  chan []byte
-	register   chan *Client
-	unregister chan *Client
+	gameManager *GameManager
+	clients     map[*Client]bool
+	broadcast   chan []byte
+	register    chan *Client
+	unregister  chan *Client
 }
 
 func (cManager *ClientManager) start() {
@@ -81,12 +81,12 @@ func (cManager *ClientManager) receive(client *Client) {
 				case "get-game-info":
 					{
 
-						cManager.gManager.getGameInfo(client)
+						cManager.gameManager.getGameInfo(client)
 					}
 
 				case "set-name":
 					{
-						cManager.gManager.setName(client, commands[1])
+						cManager.gameManager.setName(client, commands[1])
 					}
 
 				case "set-response":
@@ -94,7 +94,7 @@ func (cManager *ClientManager) receive(client *Client) {
 						response := commands[1]
 						tip := commands[2]
 
-						cManager.gManager.setResponse(client, response, tip)
+						cManager.gameManager.setResponse(client, response, tip)
 					}
 				}
 

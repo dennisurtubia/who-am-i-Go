@@ -18,22 +18,22 @@ func main() {
 	}
 
 	log.SetPrefix("[whoami-server] ")
-	log.Println("running on " + listener.Addr().String())
+	log.Println("Executando em " + listener.Addr().String())
 
-	cManager := ClientManager{
+	clientManager := ClientManager{
 		clients:    make(map[*Client]bool),
 		broadcast:  make(chan []byte),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 	}
 
-	gManager := GameManager{}
+	gameManager := GameManager{}
 
-	cManager.gManager = &gManager
-	gManager.cManager = &cManager
+	clientManager.gameManager = &gameManager
+	gameManager.clientManager = &clientManager
 
-	go cManager.start()
-	go gManager.start()
+	go clientManager.start()
+	go gameManager.start()
 
 	for {
 		connection, err := listener.Accept()
@@ -42,11 +42,9 @@ func main() {
 		}
 
 		client := &Client{socket: connection, data: make(chan []byte)}
-		cManager.register <- client
+		clientManager.register <- client
 
-		go cManager.receive(client)
-		go cManager.send(client)
-
+		go clientManager.receive(client)
+		go clientManager.send(client)
 	}
-
 }
