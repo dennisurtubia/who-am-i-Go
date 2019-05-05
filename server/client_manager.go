@@ -30,45 +30,43 @@ type ClientManager struct {
 	unregister  chan *Client
 }
 
-func (cManager *ClientManager) start() {
+func (clientManager *ClientManager) start() {
 	for {
 		select {
-		case connection := <-cManager.register:
-			cManager.clients[connection] = true
+		case connection := <-clientManager.register:
+			clientManager.clients[connection] = true
 			fmt.Println("Novo cliente")
-		case connection := <-cManager.unregister:
-			if _, ok := cManager.clients[connection]; ok {
+		case connection := <-clientManager.unregister:
+			if _, ok := clientManager.clients[connection]; ok {
 				close(connection.data)
-				delete(cManager.clients, connection)
+				delete(clientManager.clients, connection)
 				fmt.Println("Cliente vazou")
 			}
-		case message := <-cManager.broadcast:
-			for connection := range cManager.clients {
+		case message := <-clientManager.broadcast:
+			for connection := range clientManager.clients {
 				select {
 				case connection.data <- message:
 				default:
 					close(connection.data)
-					delete(cManager.clients, connection)
+					delete(clientManager.clients, connection)
 				}
 			}
 		}
 	}
 }
 
-func (cManager *ClientManager) receive(client *Client) {
+func (clientManager *ClientManager) receive(client *Client) {
 	for {
 		message := make([]byte, 4096)
 		length, err := client.socket.Read(message)
 
 		if err != nil {
-			cManager.unregister <- client
+			clientManager.unregister <- client
 			client.socket.Close()
 			break
 		}
 
 		if length > 0 {
-
-			// log.p("Received: ", string(bytes.Trim(message, "\x00")))
 
 			commands := strings.Split(string(bytes.Trim(message, "\x00")), "::")
 
@@ -81,12 +79,12 @@ func (cManager *ClientManager) receive(client *Client) {
 				case "get-game-info":
 					{
 
-						cManager.gameManager.getGameInfo(client)
+						clientManager.gameManager.getGameInfo(client)
 					}
 
 				case "set-name":
 					{
-						cManager.gameManager.setName(client, commands[1])
+						clientManager.gameManager.lobbyManager.setName(client, commands[1])
 					}
 
 				case "set-response":
@@ -94,7 +92,7 @@ func (cManager *ClientManager) receive(client *Client) {
 						response := commands[1]
 						tip := commands[2]
 
-						cManager.gameManager.setResponse(client, response, tip)
+						clientManager.gameManager.matchManager.setMasterResponse(client, response, tip)
 					}
 				}
 
@@ -105,14 +103,14 @@ func (cManager *ClientManager) receive(client *Client) {
 			// m1 := Msg1{Msg{"test_cmd"}, "777"}
 			// buffer := m1.encode()
 
-			// cManager.broadcast <- message
+			// clientManager.broadcast <- message
 			// client.data <- []byte("galo cego")
 			// client.data <- buffer.Bytes()
 		}
 	}
 }
 
-func (cManager *ClientManager) send(client *Client) {
+func (clientManager *ClientManager) send(client *Client) {
 	defer client.socket.Close()
 
 	for {

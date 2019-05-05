@@ -95,7 +95,7 @@ func (matchManager *MatchManager) setMasterResponse(client *Client, response str
 func (matchManager *MatchManager) start() {
 	log.SetPrefix("MatchManager")
 
-	log.Println("Iniciando partida")
+	log.Println("Configurando partida")
 
 	matchManager.players = make([]Player, 0)
 	matchManager.finishTime = time.Now().Add(MatchTime)
@@ -124,12 +124,10 @@ func (matchManager *MatchManager) start() {
 		return
 	}
 
-	gameManager.gameFinish = time.Now().Add(MatchTime)
+	matchManager.finishTime = time.Now().Add(MatchTime)
 
-	log.Println("Game started...")
-	gameManager.clientManager.broadcast <- []byte("game-start::" + gameManager.masterName + "::" + gameManager.tip + "::" + strconv.FormatInt(gameManager.gameFinish.UTC().UnixNano(), 10))
-
-	gameManager.gameLoop()
+	log.Println("Iniciando partida")
+	matchManager.gameManager.clientManager.broadcast <- []byte("game-start::" + matchManager.master.name + "::" + matchManager.tip + "::" + strconv.FormatInt(matchManager.finishTime.UTC().UnixNano(), 10))
 
 	time.Sleep(MatchTime)
 }

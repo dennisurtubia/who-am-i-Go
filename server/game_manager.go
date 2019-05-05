@@ -93,36 +93,6 @@ func (gameManager *GameManager) gameLoop() {
 	}
 }
 
-func (gameManager *GameManager) waitMaster() {
-	log.Println("Waiting master...")
-
-	for gameManager.status != InGame {
-		//todo: ver se não vão ocorrer problemas de sincronização
-
-		gameManager.masterName = ""
-
-		for index := 0; index < len(gameManager.inGamePlayers); index++ {
-			if gameManager.inGamePlayers[index].masterAttempt == false {
-				gameManager.inGamePlayers[index].masterAttempt = true
-				gameManager.masterName = gameManager.inGamePlayers[index].name
-				break
-			}
-		}
-
-		if gameManager.masterName == "" {
-			log.Panicln("Sem mestre irmão")
-		}
-
-		log.Println("Mestre escolhido: " + gameManager.masterName)
-
-		gameManager.getClientByName(gameManager.masterName).data <- []byte("game-master::" + gameManager.masterName)
-		// gameManager.clientManager.broadcast <- []byte("game-master::" + gameManager.masterName)
-
-		time.Sleep(MasterTime)
-	}
-	log.Println("Master: " + gameManager.masterName)
-}
-
 func (gameManager *GameManager) start() {
 
 	log.SetPrefix("GameManager ")
@@ -140,13 +110,5 @@ func (gameManager *GameManager) start() {
 		log.Println("Jogo terminou. Reiniciando...")
 		lobbyManager.reset()
 		matchManager.reset()
-
-		// gameManager.initLobby()
-		// time.Sleep(LobbyTime)
-
-		// gameManager.initGame()
-		// time.Sleep(GameTime)
-
-		// log.Println("Game finished...")
 	}
 }
