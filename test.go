@@ -1,27 +1,37 @@
 package main
 
-import (
-	"fmt"
-	"time"
-)
+import "time"
+import "fmt"
 
-func main() {
-	status := 0
-	// statusChange := make(chan bool)
-	// status <- 0
+func responseSent(c chan bool) {
+	time.Sleep(time.Second * 7)
+	c <- true
+}
 
-	go func() {
-		time.Sleep(6 * time.Second)
-		status = 1
-		// statusChange <- true
-		// status <- 1
-	}()
+func waitingLoop(c chan bool)  {
 
-	for status == 0 {
-		fmt.Println("new loop")
-		time.Sleep(2 * time.Second)
+	uptimeTicker := time.NewTicker(2 * time.Second)
+
+	for {
+		select {
+		case <-uptimeTicker.C:
+			fmt.Println("trocando manager")
+		case <-c:
+			fmt.Println("pronto")
+			uptimeTicker.Stop()
+			return
+		}
+
 	}
 
-	fmt.Println("exit")
-
 }
+
+func main()  {
+
+	c := make(chan bool, 1)
+	go responseSent(c)
+	waitingLoop(c)
+}
+
+// precisa travar no loop
+// enquanto 

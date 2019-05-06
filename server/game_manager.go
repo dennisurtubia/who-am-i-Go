@@ -3,13 +3,11 @@ package main
 import (
 	"log"
 	"strconv"
-	"time"
 )
 
 // const LobbyTime = time.Minute * 2
 // const GameTime = time.Minute * 8
 // const LobbyTime = time.Second * 5
-const MasterTime = time.Second * 10
 
 type GameStatus int
 
@@ -36,22 +34,11 @@ type GameManager struct {
 	matchManager  *MatchManager
 
 	status        GameStatus
-	lobbyPlayers  []Player
-	inGamePlayers []Player
 
-	waitingFinish time.Time
-	gameFinish    time.Time
-	playerTimeout time.Time
-
-	roundPlayer Player
-
-	masterName string
-	response   string
-	tip        string
 }
 
 func (gameManager *GameManager) getPlayerByName(name string) *Player {
-	for _, player := range append(gameManager.lobbyPlayers, gameManager.inGamePlayers...) {
+	for _, player := range append(gameManager.lobbyManager.players, gameManager.matchManager.players...) {
 		if player.name == name {
 			return &player
 		}
@@ -60,7 +47,7 @@ func (gameManager *GameManager) getPlayerByName(name string) *Player {
 }
 
 func (gameManager *GameManager) getClientByName(name string) *Client {
-	for _, player := range append(gameManager.lobbyPlayers, gameManager.inGamePlayers...) {
+	for _, player := range append(gameManager.lobbyManager.players, gameManager.matchManager.players...) {
 		if player.name == name {
 			return player.client
 		}
@@ -80,35 +67,37 @@ func (gameManager *GameManager) getGameInfo(client *Client) {
 	client.data <- []byte(msg)
 }
 
-func (gameManager *GameManager) waitPlayerAnswer() {
-	gameManager.clientManager.broadcast <- []byte("round_player::" + gameManager.roundPlayer.name)
-}
+// func (gameManager *GameManager) waitPlayerAnswer() {
+// 	gameManager.clientManager.broadcast <- []byte("round_player::" + gameManager.roundPlayer.name)
+// }
 
-func (gameManager *GameManager) gameLoop() {
-	gameManager.sortPlayers()
-	for index := 0; index < len(gameManager.inGamePlayers); index++ {
+// func (gameManager *GameManager) gameLoop() {
+// 	gameManager.sortPlayers()
+// 	for index := 0; index < len(gameManager.inGamePlayers); index++ {
 
-		gameManager.roundPlayer = gameManager.inGamePlayers[index]
-		gameManager.waitPlayerAnswer()
-	}
-}
+// 		gameManager.roundPlayer = gameManager.inGamePlayers[index]
+// 		gameManager.waitPlayerAnswer()
+// 	}
+// }
 
 func (gameManager *GameManager) start() {
 
 	log.SetPrefix("GameManager ")
 	log.Println("Start")
 
-	lobbyManager := LobbyManager{gameManager: gameManager}
-	matchManager := MatchManager{gameManager: gameManager}
+
+	gameManager.lobbyManager = &LobbyManager{gameManager: gameManager, players: make([]Player, 0)}
+	gameManager.matchManager = &MatchManager{gameManager: gameManager, players: make([]Player, 0)}
 
 	for {
 
-		lobbyManager.start()
-		copy(matchManager.players, lobbyManager.players)
-		matchManager.start()
+		gameManager.lobbyManager.start()
+		// copy(gameManager.matchManager.players, gameManager.lobbyManager.players[:])		
+		gameManager.matchManager.players = gameManager.lobbyManager.players
+		gameManager.matchManager.start()
 
 		log.Println("Jogo terminou. Reiniciando...")
-		lobbyManager.reset()
-		matchManager.reset()
+		gameManager.lobbyManager.reset()
+		gameManager.matchManager.reset()
 	}
 }

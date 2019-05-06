@@ -14,6 +14,7 @@ def client1():
             print('c1', str(data))
 
             if data == b'game-master::carlos sumare':
+                time.sleep(2)
                 s.send(b'set-response::Pao::alimento')
 
         except:
@@ -29,7 +30,7 @@ def other_clients(name):
     while True:
         try:
             data = s.recv(1024)
-            print(name, str(data))
+            #print(name, str(data))
 
         except:
             print('error')

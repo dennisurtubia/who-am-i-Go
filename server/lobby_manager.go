@@ -51,7 +51,7 @@ func (lobbyManager *LobbyManager) start() {
 
 	log.Println("Esperando jogadores")
 
-	lobbyManager.players = make([]Player, 0)
+	// lobbyManager.players = make([]Player, 0)
 	lobbyManager.waitingTime = time.Now().Add(LobbyTime)
 	lobbyManager.gameManager.status = Lobby
 
