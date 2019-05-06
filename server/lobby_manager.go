@@ -6,7 +6,7 @@ import (
 )
 
 // LobbyTime Tempo de espera no lobby
-const LobbyTime = time.Second * 10
+const LobbyTime = time.Second * 5
 
 // LobbyManager Gerenciador do lobby
 type LobbyManager struct {

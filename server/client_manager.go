@@ -37,12 +37,14 @@ func (clientManager *ClientManager) start() {
 			clientManager.clients[connection] = true
 			fmt.Println("Novo cliente")
 		case connection := <-clientManager.unregister:
+			fmt.Println("unregister")
 			if _, ok := clientManager.clients[connection]; ok {
 				close(connection.data)
 				delete(clientManager.clients, connection)
 				fmt.Println("Cliente vazou")
 			}
 		case message := <-clientManager.broadcast:
+			fmt.Println(clientManager.clients)
 			for connection := range clientManager.clients {
 				select {
 				case connection.data <- message:

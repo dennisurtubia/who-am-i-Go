@@ -97,7 +97,7 @@ func (gameManager *GameManager) start() {
 		gameManager.matchManager.start()
 
 		log.Println("Jogo terminou. Reiniciando...")
-		gameManager.lobbyManager.reset()
-		gameManager.matchManager.reset()
+		// gameManager.lobbyManager.reset()
+		// gameManager.matchManager.reset()
 	}
 }

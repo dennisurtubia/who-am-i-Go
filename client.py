@@ -10,12 +10,16 @@ def client1():
 
     while True:
         try:
-            data = s.recv(1024)
-            print('c1', str(data))
+            data = s.recv(10000)
+            if len(data) == 0:
+                return
+            print(data)
 
             if data == b'game-master::carlos sumare':
-                time.sleep(2)
+              
                 s.send(b'set-response::Pao::alimento')
+
+         
 
         except:
             print('error')
@@ -44,6 +48,14 @@ if __name__ == '__main__':
 
     time.sleep(1)
 
+    clients = [c1]
+
     for i in range(5):
         c = multiprocessing.Process(target=other_clients, args=('client' + str(i),))
         c.start()
+        clients.append(c)
+
+    for c in clients:
+        c.join()
+
+    print('fimm')

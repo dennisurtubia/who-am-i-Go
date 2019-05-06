@@ -3,14 +3,14 @@ package main
 import (
 	"log"
 	// "math/r	and"
-	"strconv"
+	// "strconv"
 	"strings"
 	"time"
 )
 
-const MatchTime = time.Minute * 10
-const MasterTime = time.Second * 10
-const AnswerTime = time.Second * 3
+const MatchTime = time.Second * 120
+const MasterTime = time.Second * 5
+const AnswerTime = time.Second * 20
 
 type MatchManager struct {
 	gameManager *GameManager
@@ -93,7 +93,6 @@ func (matchManager *MatchManager) waitMasterResponse() {
 	
 			matchManager.gameManager.getClientByName(matchManager.master.name).data <- []byte("game-master::" + matchManager.master.name)
 		case <-matchManager.masterChan:
-			log.Println("pronto")
 			ticker.Stop()
 			log.Println("Mestre da partida: " + matchManager.master.name)
 			return
@@ -106,9 +105,9 @@ func (matchManager *MatchManager) waitMasterResponse() {
 func (matchManager *MatchManager) setMasterResponse(client *Client, response string, tip string) {
 	// todo: verificar se quem fez essa chamada é o master
 
-	if matchManager.gameManager.status != WaitingForMaster {
-		return
-	}
+	// if matchManager.gameManager.status != WaitingForMaster {
+	// 	return
+	// }
 
 	log.Println("Mestre enviou resposta e dica")
 
@@ -128,31 +127,36 @@ func (matchManager *MatchManager) matchLoop() {
 	index := 0
 	log.Println("Tentando jogador ", index)
 
+	matchManager.gameManager.clientManager.broadcast <- []byte("1234")
+	
+	// ticker := time.NewTicker(AnswerTime)
 	index = index + 1
-	ticker := time.NewTicker(AnswerTime)
 
 	// escolhe jogador e envia request
 
-	for {
-		select {
-		case <-matchManager.answerChan:
-			index = index + 1
+	// for {
+	// 	select {
+	// 	case <-matchManager.answerChan:
 
-			if index > len(matchManager.players) {
-			}
+	// 		matchManager.gameManager.clientManager.broadcast <- []byte("round_player::")
+	// 		index = index + 1
+
+	// 		if index > len(matchManager.players) {
+	// 		}
+
+	// 		ticker = time.NewTicker(AnswerTime)
 			
-			ticker = time.NewTicker(AnswerTime)
-			
-		case <-ticker.C:
-			// escolhe jogador e envia request 
-			log.Println("Tentando jogador ", index)
-			index = index + 1
+	// 	case <-ticker.C:
+	// 		// escolhe jogador e envia request 
+	// 		log.Println("Tentando jogador ", index)
+	// 		matchManager.gameManager.clientManager.broadcast <- []byte("round_player::")
+	// 		index = index + 1
 
-			if index > len(matchManager.players) {
-
-			}
-		}
-	}
+	// 		// if index > len(matchManager.players) {
+	// 		// 	log.Println("")
+	// 		// }
+	// 	}
+	// }
 
 
 
@@ -195,18 +199,23 @@ func (matchManager *MatchManager) start() {
 	matchManager.finishTime = time.Now().Add(MatchTime)
 
 	log.Println("Iniciando partida")
-	matchManager.gameManager.clientManager.broadcast <- []byte("game-start::" + matchManager.master.name + "::" + matchManager.tip + "::" + strconv.FormatInt(matchManager.finishTime.UTC().UnixNano(), 10))
+	// matchManager.gameManager.clientManager.broadcast <- []byte("game-start\n")
+	// matchManager.gameManager.clientManager.broadcast <- []byte("game-start::" + matchManager.master.name + "::" + matchManager.tip + "::" + strconv.FormatInt(matchManager.finishTime.UTC().UnixNano(), 10))
+	matchManager.gameManager.clientManager.broadcast <- []byte("pqqqqqz\n")
 
-
+	log.Println("aqio")
 	matchManager.matchChan = make(chan bool, 1)
-	go matchManager.matchLoop()
-
+	matchManager.matchLoop()
+	
+	log.Println("aqqquququ")
 	select {
 	case <-matchManager.matchChan:
-		return
+		break
 	case <-time.After(MatchTime):
-		return
+		break
 	}
+
+	log.Println("fimzera")
 
 	// time.Sleep(MatchTime)
 }
