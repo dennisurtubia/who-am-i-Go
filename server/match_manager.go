@@ -10,7 +10,7 @@ import (
 
 const MatchTime = time.Minute * 10
 const MasterTime = time.Second * 10
-
+const AnswerTime = time.Second * 10
 
 type MatchManager struct {
 	gameManager *GameManager
@@ -22,6 +22,8 @@ type MatchManager struct {
 	tip         string
 
 	masterChan chan bool
+	answerChan chan bool
+	matchChan chan bool
 
 	finishTime time.Time
 }
@@ -52,10 +54,7 @@ func (gameManager *GameManager) initGame() {
 
 // waitMasterResponse  Escolhe mestre e aguarda resposta e dica.
 func (matchManager *MatchManager) waitMasterResponse() {
-
-	
 	ticker := time.NewTicker(MasterTime)
-
 	
 	for index := 0; index < len(matchManager.players); index++ {
 		if matchManager.players[index].masterAttempt == false {
@@ -120,6 +119,29 @@ func (matchManager *MatchManager) setMasterResponse(client *Client, response str
 
 }
 
+func (matchManager *MatchManager) playerAnswer() {
+	matchManager.answerChan <- true
+}
+
+func (matchManager *MatchManager) matchLoop() {
+
+
+
+	
+	ticker := time.NewTicker(MasterTime)
+
+	// escolhe jogador e envia request
+
+	for {
+		select {
+		case <-matchManager.answerChan:
+		case <-ticker.C:
+			// escolhe jogador e envia request 
+			answerChan = make(chan bool, 1)
+		}
+	}
+}
+
 func (matchManager *MatchManager) start() {
 	log.SetPrefix("MatchManager")
 
@@ -158,7 +180,18 @@ func (matchManager *MatchManager) start() {
 	log.Println("Iniciando partida")
 	matchManager.gameManager.clientManager.broadcast <- []byte("game-start::" + matchManager.master.name + "::" + matchManager.tip + "::" + strconv.FormatInt(matchManager.finishTime.UTC().UnixNano(), 10))
 
-	time.Sleep(MatchTime)
+
+	matchManager.matchChan = make(chan bool, 1)
+	go matchManager.matchLoop()
+
+	select {
+	case <-matchManager.matchChan:
+		return
+	case <-time.After(MatchTime):
+		return
+	}
+
+	// time.Sleep(MatchTime)
 }
 
 func (matchManager *MatchManager) reset() {
