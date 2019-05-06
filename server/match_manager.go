@@ -10,7 +10,7 @@ import (
 
 const MatchTime = time.Minute * 10
 const MasterTime = time.Second * 10
-const AnswerTime = time.Second * 10
+const AnswerTime = time.Second * 3
 
 type MatchManager struct {
 	gameManager *GameManager
@@ -125,21 +125,38 @@ func (matchManager *MatchManager) playerAnswer() {
 
 func (matchManager *MatchManager) matchLoop() {
 
+	index := 0
+	log.Println("Tentando jogador ", index)
 
-
-	
-	ticker := time.NewTicker(MasterTime)
+	index = index + 1
+	ticker := time.NewTicker(AnswerTime)
 
 	// escolhe jogador e envia request
 
 	for {
 		select {
 		case <-matchManager.answerChan:
+			index = index + 1
+
+			if index > len(matchManager.players) {
+			}
+			
+			ticker = time.NewTicker(AnswerTime)
+			
 		case <-ticker.C:
 			// escolhe jogador e envia request 
-			answerChan = make(chan bool, 1)
+			log.Println("Tentando jogador ", index)
+			index = index + 1
+
+			if index > len(matchManager.players) {
+
+			}
 		}
 	}
+
+
+
+
 }
 
 func (matchManager *MatchManager) start() {
