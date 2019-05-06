@@ -64,7 +64,8 @@ func (gameManager *GameManager) getGameInfo(client *Client) {
 		msg += "ingame::" + strconv.FormatInt(gameManager.matchManager.finishTime.UTC().UnixNano(), 10)
 	}
 
-	client.data <- []byte(msg)
+	// client.data <- []byte(msg)
+	client.socket.Write([]byte(msg))
 }
 
 // func (gameManager *GameManager) waitPlayerAnswer() {

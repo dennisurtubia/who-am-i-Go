@@ -2,14 +2,14 @@ package main
 
 import (
 	"log"
-	// "math/r	and"
-	// "strconv"
+	// "math/rand"
+	"strconv"
 	"strings"
 	"time"
 )
 
 const MatchTime = time.Second * 120
-const MasterTime = time.Second * 5
+const MasterTime = time.Second * 10
 const AnswerTime = time.Second * 20
 
 type MatchManager struct {
@@ -71,8 +71,9 @@ func (matchManager *MatchManager) waitMasterResponse() {
 
 	log.Println("Tentando mestre: " + matchManager.master.name)
 
-	matchManager.gameManager.getClientByName(matchManager.master.name).data <- []byte("game-master::" + matchManager.master.name)
+	// matchManager.gameManager.getClientByName(matchManager.master.name).data <- []byte("game-master::" + matchManager.master.name)
 
+	matchManager.gameManager.getClientByName(matchManager.master.name).socket.Write([]byte("game-master::" + matchManager.master.name))
 	for {
 		select {
 		case <-ticker.C:
@@ -91,7 +92,7 @@ func (matchManager *MatchManager) waitMasterResponse() {
 	
 			log.Println("Tentando mestre: " + matchManager.master.name)
 	
-			matchManager.gameManager.getClientByName(matchManager.master.name).data <- []byte("game-master::" + matchManager.master.name)
+			matchManager.gameManager.getClientByName(matchManager.master.name).socket.Write([]byte("game-master::" + matchManager.master.name))
 		case <-matchManager.masterChan:
 			ticker.Stop()
 			log.Println("Mestre da partida: " + matchManager.master.name)
@@ -127,36 +128,35 @@ func (matchManager *MatchManager) matchLoop() {
 	index := 0
 	log.Println("Tentando jogador ", index)
 
-	matchManager.gameManager.clientManager.broadcast <- []byte("1234")
-	
-	// ticker := time.NewTicker(AnswerTime)
+	matchManager.gameManager.clientManager.broadcast("round_player::"+matchManager.players[index].name)
+	ticker := time.NewTicker(AnswerTime)
 	index = index + 1
 
 	// escolhe jogador e envia request
 
-	// for {
-	// 	select {
-	// 	case <-matchManager.answerChan:
+	for {
+		select {
+		case <-matchManager.answerChan:
 
-	// 		matchManager.gameManager.clientManager.broadcast <- []byte("round_player::")
-	// 		index = index + 1
+			matchManager.gameManager.clientManager.broadcast("round_player::"+matchManager.players[index].name)
+			index = index + 1
 
-	// 		if index > len(matchManager.players) {
-	// 		}
+			if index > len(matchManager.players) {
+			}
 
-	// 		ticker = time.NewTicker(AnswerTime)
+			ticker = time.NewTicker(AnswerTime)
 			
-	// 	case <-ticker.C:
-	// 		// escolhe jogador e envia request 
-	// 		log.Println("Tentando jogador ", index)
-	// 		matchManager.gameManager.clientManager.broadcast <- []byte("round_player::")
-	// 		index = index + 1
+		case <-ticker.C:
+			// escolhe jogador e envia request 
+			log.Println("Tentando jogador ", index)
+			matchManager.gameManager.clientManager.broadcast("round_player::"+matchManager.players[index].name)
+			index = index + 1
 
-	// 		// if index > len(matchManager.players) {
-	// 		// 	log.Println("")
-	// 		// }
-	// 	}
-	// }
+			// if index > len(matchManager.players) {
+			// 	log.Println("")
+			// }
+		}
+	}
 
 
 
@@ -172,10 +172,10 @@ func (matchManager *MatchManager) start() {
 	matchManager.finishTime = time.Now().Add(MatchTime)
 	matchManager.gameManager.status = Game
 
-	if len(matchManager.players) < 2 {
-		log.Println("Jogadores insuficientes")
-		return
-	}
+	// if len(matchManager.players) < 2 {
+	// 	log.Println("Jogadores insuficientes")
+	// 	return
+	// }
 
 	// Envia nome dos jogadores separados por vírgula [game-init]
 	matchManager.gameManager.status = WaitingForMaster
@@ -186,7 +186,8 @@ func (matchManager *MatchManager) start() {
 	}
 
 	playerNamesJoin := strings.Join(playersNames[:], ",")
-	matchManager.gameManager.clientManager.broadcast <- []byte("game-init::" + playerNamesJoin)
+	matchManager.gameManager.clientManager.broadcast("game-init::" + playerNamesJoin)
+
 
 	// Espera definição do mestre
 	matchManager.masterChan = make(chan bool, 1)
@@ -200,14 +201,11 @@ func (matchManager *MatchManager) start() {
 
 	log.Println("Iniciando partida")
 	// matchManager.gameManager.clientManager.broadcast <- []byte("game-start\n")
-	// matchManager.gameManager.clientManager.broadcast <- []byte("game-start::" + matchManager.master.name + "::" + matchManager.tip + "::" + strconv.FormatInt(matchManager.finishTime.UTC().UnixNano(), 10))
-	matchManager.gameManager.clientManager.broadcast <- []byte("pqqqqqz\n")
+	matchManager.gameManager.clientManager.broadcast("game-start::" + matchManager.master.name + "::" + matchManager.tip + "::" + strconv.FormatInt(matchManager.finishTime.UTC().UnixNano(), 10))
 
-	log.Println("aqio")
 	matchManager.matchChan = make(chan bool, 1)
 	matchManager.matchLoop()
 	
-	log.Println("aqqquququ")
 	select {
 	case <-matchManager.matchChan:
 		break

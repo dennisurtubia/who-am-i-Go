@@ -6,7 +6,7 @@ import (
 )
 
 // LobbyTime Tempo de espera no lobby
-const LobbyTime = time.Second * 5
+const LobbyTime = time.Second * 10
 
 // LobbyManager Gerenciador do lobby
 type LobbyManager struct {
@@ -41,7 +41,8 @@ func (lobbyManager *LobbyManager) setName(client *Client, name string) {
 		msg += "already_used"
 	}
 
-	client.data <- []byte(msg)
+	// client.data <- []byte(msg)
+	client.socket.Write([]byte(msg))
 
 }
 

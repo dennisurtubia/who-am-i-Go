@@ -22,9 +22,6 @@ func main() {
 
 	clientManager := ClientManager{
 		clients:    make(map[*Client]bool),
-		broadcast:  make(chan []byte),
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
 	}
 
 	gameManager := GameManager{}
@@ -32,7 +29,7 @@ func main() {
 	clientManager.gameManager = &gameManager
 	gameManager.clientManager = &clientManager
 
-	go clientManager.start()
+	// go clientManager.start()
 	go gameManager.start()
 
 	for {
@@ -41,10 +38,12 @@ func main() {
 			fmt.Println(err.Error())
 		}
 
-		client := &Client{socket: connection, data: make(chan []byte)}
-		clientManager.register <- client
+		client := &Client{socket: connection}
+		go clientManager.handleClient(client)
+		// clientManager.register <- client
+		// clientManager.clientEnter(client)
 
-		go clientManager.receive(client)
-		go clientManager.send(client)
+		// go clientManager.receive(client)
+		// go clientManager.send(client)
 	}
 }
