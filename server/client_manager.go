@@ -71,6 +71,8 @@ func (clientManager *ClientManager) handleClient(client *Client) {
 			response, err := strconv.ParseBool(commands[1])
 			if err != nil {
 				clientManager.gameManager.matchManager.masterResponse(response)
+			} else {
+				log.Println(err, response)
 			}
 		}
 

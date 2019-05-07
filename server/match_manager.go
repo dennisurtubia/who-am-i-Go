@@ -9,9 +9,9 @@ import (
 )
 
 const MatchTime = time.Second * 120
-const MasterTime = time.Second * 20
-const QuestionTime = time.Second * 30
-const MasterAnswerTime = time.Second * 30
+const MasterTime = time.Second * 10
+const QuestionTime = time.Second * 10
+const MasterAnswerTime = time.Second * 10
 
 type MatchManager struct {
 	gameManager *GameManager
@@ -184,6 +184,8 @@ func (matchManager *MatchManager) matchLoop() {
 		matchManager.gameManager.clientManager.send(matchManager.gameManager.getClientByName(matchManager.master.name), "player-response::"+playerQuestion)
 
 		masterResponse := <-matchManager.masterResponseChan //timeout
+
+		log.Println("------------->", masterResponse)
 
 		str := "no"
 		if  masterResponse {

@@ -40,6 +40,9 @@ def other_clients(name):
                 time.sleep(2)
                 s.send(b'set-response::Pao::alimento\n')
 
+            if data == b'round-player::client0':
+                s.send(b'player-question::o tata é fota?')
+
 
         except:
             print('error')
