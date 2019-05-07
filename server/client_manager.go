@@ -29,6 +29,7 @@ func (clientManager *ClientManager) handleClient(client *Client) {
 
 	for scanner.Scan() {
 		message := scanner.Text()
+		log.Println("[Mensagem] ", message)
 
 		commands := strings.Split(message, "::")
 
@@ -79,17 +80,19 @@ func (clientManager *ClientManager) handleClient(client *Client) {
 		}
 	}
 
+	log.Println("Cliente saiu")
+
 	delete(clientManager.clients, client)
 }
 
 func (clientManager *ClientManager) broadcast(message string) {
 	for client := range clientManager.clients {
-		client.socket.Write([]byte(message))
+		clientManager.send(client, message)
 	}
 }
 
 func (clientManager *ClientManager) send(client *Client, message string) {
-	client.socket.Write([]byte(message))
+	client.socket.Write([]byte(message + "\n"))
 }
 
 func (clientManager *ClientManager) receive(client *Client) {

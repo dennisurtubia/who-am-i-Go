@@ -64,52 +64,55 @@ func (gameManager *GameManager) initGame() {
 
 // waitMasterResponse  Escolhe mestre e aguarda resposta e dica.
 func (matchManager *MatchManager) waitMasterResponse() {
-	ticker := time.NewTicker(MasterTime)
+	// ticker := time.NewTicker(MasterTime)
 
-	for index := 0; index < len(matchManager.players); index++ {
-		if matchManager.players[index].masterAttempt == false {
-			matchManager.players[index].masterAttempt = true
-			matchManager.master = &matchManager.players[index]
-			break
-		}
-	}
+	// for index := 0; index < len(matchManager.players); index++ {
+	// 	if matchManager.players[index].masterAttempt == false {
+	// 		matchManager.players[index].masterAttempt = true
+	// 		matchManager.master = &matchManager.players[index]
+	// 		break
+	// 	}
+	// }
 
-	if matchManager.master == nil {
-		log.Println("Não foi possível escolher um mestre")
-		return
-	}
+	// if matchManager.master == nil {
+	// 	log.Println("Não foi possível escolher um mestre")
+	// 	return
+	// }
 
-	log.Println("Tentando mestre: " + matchManager.master.name)
+	matchManager.master = &matchManager.players[0]
+
+	log.Println("Mestre da partida: " + matchManager.master.name)
 
 	// matchManager.gameManager.getClientByName(matchManager.master.name).data <- []byte("game-master::" + matchManager.master.name)
 
-	matchManager.gameManager.getClientByName(matchManager.master.name).socket.Write([]byte("game-master::" + matchManager.master.name))
-	for {
-		select {
-		case <-ticker.C:
-			for index := 0; index < len(matchManager.players); index++ {
-				if matchManager.players[index].masterAttempt == false {
-					matchManager.players[index].masterAttempt = true
-					matchManager.master = &matchManager.players[index]
-					break
-				}
-			}
+	matchManager.gameManager.clientManager.send(matchManager.gameManager.getClientByName(matchManager.master.name), "game-master::" + matchManager.master.name)
+	<-matchManager.masterChan
+	// for {
+	// 	select {
+	// 	case <-ticker.C:
+	// 		for index := 0; index < len(matchManager.players); index++ {
+	// 			if matchManager.players[index].masterAttempt == false {
+	// 				matchManager.players[index].masterAttempt = true
+	// 				matchManager.master = &matchManager.players[index]
+	// 				break
+	// 			}
+	// 		}
 
-			if matchManager.master == nil {
-				log.Println("Não foi possível escolher um mestre")
-				return
-			}
+	// 		if matchManager.master == nil {
+	// 			log.Println("Não foi possível escolher um mestre")
+	// 			return
+	// 		}
 
-			log.Println("Tentando mestre: " + matchManager.master.name)
+	// 		log.Println("Tentando mestre: " + matchManager.master.name)
 
-			matchManager.gameManager.getClientByName(matchManager.master.name).socket.Write([]byte("game-master::" + matchManager.master.name))
-		case <-matchManager.masterChan:
-			ticker.Stop()
-			log.Println("Mestre da partida: " + matchManager.master.name)
-			return
-		}
+	// 		matchManager.gameManager.getClientByName(matchManager.master.name).socket.Write([]byte("game-master::" + matchManager.master.name))
+	// 	case <-matchManager.masterChan:
+	// 		ticker.Stop()
+	// 		log.Println("Mestre da partida: " + matchManager.master.name)
+	// 		return
+	// 	}
 
-	}
+	// }
 }
 
 // setMasterResponse Mestre enviou resposta e dica
@@ -135,7 +138,7 @@ func (matchManager *MatchManager) playerQuestion(question string) {
 }
 
 func (matchManager *MatchManager) masterResponse(response string) {
-	log.Println("master respondeu")
+	log.Println("master respondeu ", response)
 	matchManager.masterResponseChan <- response
 }
 
@@ -162,14 +165,19 @@ func (matchManager *MatchManager) selectPlayer(index *int) bool {
 }
 
 func (matchManager *MatchManager) matchLoop() {
-	matchManager.playerQuestionChan = make(chan string, 1)
-	matchManager.masterResponseChan = make(chan string, 1)
-	matchManager.playerResponseChan = make(chan string, 1)
+
 
 	for index := 0; index < len(matchManager.players); index++ {
+
+		matchManager.playerQuestionChan = make(chan string, 1)
+		matchManager.masterResponseChan = make(chan string, 1)
+		matchManager.playerResponseChan = make(chan string, 1)
+
 		if matchManager.master == &matchManager.players[index] {
 			index++
 		}
+
+		log.Println("Jogador da vez: ", matchManager.players[index])
 
 		if index >= len(matchManager.players) {
 			log.Println("acabou")
@@ -182,7 +190,10 @@ func (matchManager *MatchManager) matchLoop() {
 
 		matchManager.gameManager.clientManager.send(matchManager.gameManager.getClientByName(matchManager.master.name), "player-question::"+playerQuestion)
 
+
 		masterResponse := <-matchManager.masterResponseChan //timeout
+
+		log.Println("matato")
 
 		matchManager.gameManager.clientManager.broadcast("master-response::" + masterResponse)
 
@@ -191,14 +202,15 @@ func (matchManager *MatchManager) matchLoop() {
 		matchManager.responseEnd = time.Now()
 
 		if playerResponse == matchManager.response {
-			log.Println("Resposta correta")
-			matchManager.gameManager.getPlayerByName(matchManager.players[index].name).score = int(100 * (1 / matchManager.responseEnd.Sub(matchManager.responseStart).Seconds()))
-			matchManager.gameManager.clientManager.broadcast("player-response::" + matchManager.players[index].name + "::true::" + string(matchManager.gameManager.getPlayerByName(matchManager.players[index].name).score))
+			score := int(100 * (1 / (matchManager.responseEnd.Sub(matchManager.responseStart).Seconds())))
+			log.Println("Resposta correta. Score: ", strconv.Itoa(score))
+			// matchManager.gameManager.getPlayerByName(matchManager.players[index].name).score = int(100 * (1 / matchManager.responseEnd.Sub(matchManager.responseStart).Seconds()))
+			matchManager.gameManager.clientManager.broadcast("player-response::" + matchManager.players[index].name + "::true::" + strconv.Itoa(matchManager.gameManager.getPlayerByName(matchManager.players[index].name).score))
 		} else {
 			matchManager.gameManager.clientManager.broadcast("player-response::" + matchManager.players[index].name + "::false")
 		}
-		index++
 	}
+	matchManager.matchChan <- true
 
 }
 
@@ -256,7 +268,18 @@ func (matchManager *MatchManager) start() {
 		break
 	}
 
-	log.Println("fimzera")
+	maxScorePlayer := matchManager.players[0]
+	for index := 0; index < len(matchManager.players); index++ {
+		if matchManager.players[index].score > maxScorePlayer.score {
+			maxScorePlayer =  matchManager.players[index]
+		}
+	}
+
+	winStr :=  "game-end::" + maxScorePlayer.name + "::" + strconv.Itoa(maxScorePlayer.score)
+	log.Println("Fim da partida: ", winStr)
+	matchManager.gameManager.clientManager.broadcast(winStr)
+
+
 }
 
 func (matchManager *MatchManager) reset() {
