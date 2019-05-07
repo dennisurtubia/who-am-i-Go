@@ -75,6 +75,9 @@ func (clientManager *ClientManager) broadcast(message string) {
 	}
 }
 
+func (clientManager *ClientManager) send(client *Client, message string) {
+	client.socket.Write([]byte(message))
+}
 
 func (clientManager *ClientManager) receive(client *Client) {
 	for {

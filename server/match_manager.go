@@ -10,7 +10,8 @@ import (
 
 const MatchTime = time.Second * 120
 const MasterTime = time.Second * 10
-const AnswerTime = time.Second * 20
+const QuestionTime = time.Second * 20
+const MasterAnswerTime = time.Second * 20
 
 type MatchManager struct {
 	gameManager *GameManager
@@ -22,8 +23,15 @@ type MatchManager struct {
 	tip         string
 
 	masterChan chan bool
-	answerChan chan bool
+	// playerQuestionChan chan bool
+	// masterResponseChan chan bool
+	// playerResponseChan chan bool
 	matchChan chan bool
+
+	playerQuestionChan chan string
+	masterResponseChan chan bool
+	playerResponseChan chan string
+
 
 	finishTime time.Time
 }
@@ -119,48 +127,89 @@ func (matchManager *MatchManager) setMasterResponse(client *Client, response str
 
 }
 
-func (matchManager *MatchManager) playerAnswer() {
-	matchManager.answerChan <- true
+func (matchManager *MatchManager) playerQuestion() {
+	matchManager.playerQuestionChan <- "aa"
+}
+
+func (matchManager *MatchManager) selectPlayer(index *int) bool {
+
+	if matchManager.master == &matchManager.players[*index] {
+		*index++
+	}
+
+	if *index > len(matchManager.players) {
+		log.Println("acabou")
+		return false
+	}
+
+	matchManager.gameManager.clientManager.broadcast("round_player::"+matchManager.players[*index].name)
+	(*index)++
+
+	return true
 }
 
 func (matchManager *MatchManager) matchLoop() {
+	matchManager.playerQuestionChan = make(chan string, 1)
+	matchManager.masterResponseChan = make(chan bool, 1)
+	matchManager.playerResponseChan = make(chan string, 1)
 
-	index := 0
-	log.Println("Tentando jogador ", index)
-
-	matchManager.gameManager.clientManager.broadcast("round_player::"+matchManager.players[index].name)
-	ticker := time.NewTicker(AnswerTime)
-	index = index + 1
-
-	// escolhe jogador e envia request
-
-	for {
-		select {
-		case <-matchManager.answerChan:
-
-			matchManager.gameManager.clientManager.broadcast("round_player::"+matchManager.players[index].name)
-			index = index + 1
-
-			if index > len(matchManager.players) {
-			}
-
-			ticker = time.NewTicker(AnswerTime)
-			
-		case <-ticker.C:
-			// escolhe jogador e envia request 
-			log.Println("Tentando jogador ", index)
-			matchManager.gameManager.clientManager.broadcast("round_player::"+matchManager.players[index].name)
-			index = index + 1
-
-			// if index > len(matchManager.players) {
-			// 	log.Println("")
-			// }
+	for index := 0; index < len(matchManager.players); index++ {
+		if matchManager.master == &matchManager.players[index] {
+			index++
 		}
+
+		if index > len(matchManager.players) {
+			log.Println("acabou")
+			return
+		}
+	
+		matchManager.gameManager.clientManager.broadcast("round_player::"+matchManager.players[index].name)
+		index++
+
+		playerQuestion := <-matchManager.playerQuestionChan // timeout
+
+		matchManager.gameManager.clientManager.send(matchManager.gameManager.getClientByName(matchManager.master.name), "player-response::"+playerQuestion)
+
+		masterResponse := <-matchManager.masterResponseChan //timeout
+
+		str := "no"
+		if  masterResponse {
+			str = "yes"
+		}
+
+		matchManager.gameManager.clientManager.broadcast("master-response::" + str)
+
+		playerResponse := <-matchManager.playerResponseChan
+
+
+
 	}
+	// index := 0
 
+	// if !matchManager.selectPlayer(&index) {
+	// 	matchManager.matchChan <- true
+	// }
 
+	// ticker := time.NewTicker(QuestionTime)
 
+	// // escolhe jogador e envia request
 
+	// for {
+	// 	select {
+	// 	case <-matchManager.answerChan:
+	// 		if !matchManager.selectPlayer(&index) {
+	// 			matchManager.matchChan <- true
+	// 		}
+		
+	// 		ticker = time.NewTicker(QuestionTime)
+			
+	// 	case <-ticker.C:
+	// 		if !matchManager.selectPlayer(&index) {
+	// 			matchManager.matchChan <- true
+	// 		}
+		
+	// 	}
+	// }
 }
 
 func (matchManager *MatchManager) start() {
@@ -214,8 +263,6 @@ func (matchManager *MatchManager) start() {
 	}
 
 	log.Println("fimzera")
-
-	// time.Sleep(MatchTime)
 }
 
 func (matchManager *MatchManager) reset() {
