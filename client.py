@@ -19,8 +19,10 @@ def client1():
                 time.sleep(2)
                 s.send(b'set-response::Pao::alimento\n')
 
-         
-
+            elif data == b'round_player::carlos sumare':
+                time.sleep(2)
+                print('->---')
+                s.send(b'player-question::o tata eh fota?')
         except:
             print('error')
             return
@@ -40,8 +42,10 @@ def other_clients(name):
                 time.sleep(2)
                 s.send(b'set-response::Pao::alimento\n')
 
-            if data == b'round-player::client0':
-                s.send(b'player-question::o tata é fota?')
+            if name == 'client0' and data == b'round_player::client0':
+                time.sleep(2)
+                print('->---')
+                s.send(b'player-question::o tata eh fota?')
 
 
         except:

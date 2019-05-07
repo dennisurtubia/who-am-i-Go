@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"net"
 	"strings"
-	"strconv"
 	"log"
 )
 
@@ -63,17 +62,14 @@ func (clientManager *ClientManager) handleClient(client *Client) {
 					clientManager.gameManager.matchManager.setMasterResponse(client, response, tip)
 				}
 			case "player-question": {
+				log.Println("playerQuestion")
 				question := commands[1]
 				clientManager.gameManager.matchManager.playerQuestion(question)
 			}
 
 		case "master-response": {
-			response, err := strconv.ParseBool(commands[1])
-			if err != nil {
+			response := commands[1]
 				clientManager.gameManager.matchManager.masterResponse(response)
-			} else {
-				log.Println(err, response)
-			}
 		}
 
 	case "player-response": {

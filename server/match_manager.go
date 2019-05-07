@@ -9,9 +9,9 @@ import (
 )
 
 const MatchTime = time.Second * 120
-const MasterTime = time.Second * 10
-const QuestionTime = time.Second * 10
-const MasterAnswerTime = time.Second * 10
+const MasterTime = time.Second * 20
+const QuestionTime = time.Second * 20
+const MasterAnswerTime = time.Second * 20
 
 type MatchManager struct {
 	gameManager *GameManager
@@ -29,7 +29,7 @@ type MatchManager struct {
 	matchChan chan bool
 
 	playerQuestionChan chan string
-	masterResponseChan chan bool
+	masterResponseChan chan string
 	playerResponseChan chan string
 
 
@@ -132,7 +132,7 @@ func (matchManager *MatchManager) playerQuestion(question string) {
 	matchManager.playerQuestionChan <- question
 }
 
-func (matchManager *MatchManager) masterResponse(response bool) {
+func (matchManager *MatchManager) masterResponse(response string) {
 	log.Println("master respondeu")
 	matchManager.masterResponseChan <- response
 }
@@ -163,7 +163,7 @@ func (matchManager *MatchManager) selectPlayer(index *int) bool {
 
 func (matchManager *MatchManager) matchLoop() {
 	matchManager.playerQuestionChan = make(chan string, 1)
-	matchManager.masterResponseChan = make(chan bool, 1)
+	matchManager.masterResponseChan = make(chan string, 1)
 	matchManager.playerResponseChan = make(chan string, 1)
 
 	for index := 0; index < len(matchManager.players); index++ {
@@ -171,37 +171,32 @@ func (matchManager *MatchManager) matchLoop() {
 			index++
 		}
 
-		if index > len(matchManager.players) {
+		if index >= len(matchManager.players) {
 			log.Println("acabou")
 			return
 		}
 	
 		matchManager.gameManager.clientManager.broadcast("round_player::"+matchManager.players[index].name)
-		index++
-
+		
 		playerQuestion := <-matchManager.playerQuestionChan // timeout
-
-		matchManager.gameManager.clientManager.send(matchManager.gameManager.getClientByName(matchManager.master.name), "player-response::"+playerQuestion)
-
+		
+		matchManager.gameManager.clientManager.send(matchManager.gameManager.getClientByName(matchManager.master.name), "player-question::"+playerQuestion)
+		
 		masterResponse := <-matchManager.masterResponseChan //timeout
-
-		log.Println("------------->", masterResponse)
-
-		str := "no"
-		if  masterResponse {
-			str = "yes"
-		}
-
-		matchManager.gameManager.clientManager.broadcast("master-response::" + str)
-
+		
+		matchManager.gameManager.clientManager.broadcast("master-response::" + masterResponse)
+		
 		playerResponse := <-matchManager.playerResponseChan
-
+		
+		log.Println("resposta do jogador: ", playerResponse, "resposta correta: ", matchManager.response)
+		
 		if playerResponse == matchManager.response {
 			log.Println("Resposta correta")
-			matchManager.gameManager.clientManager.broadcast("player-response::" + matchManager.players[index].name + "::yes")
-		} else {
-			matchManager.gameManager.clientManager.broadcast("player-response::" + matchManager.players[index].name + "::no")
-		}
+			matchManager.gameManager.clientManager.broadcast("player-response::" + matchManager.players[index].name + "::true")
+			} else {
+				matchManager.gameManager.clientManager.broadcast("player-response::" + matchManager.players[index].name + "::false")
+			}
+			index++
 	}
 	// index := 0
 
