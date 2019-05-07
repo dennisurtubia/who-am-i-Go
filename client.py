@@ -12,10 +12,10 @@ def master():
             data = s.recv(4096)
             print('[master] ', data)
 
-            if data == b'game-master::master':
+            if data == b'game-master::master\n':
                 time.sleep(1)
                 s.send(b'set-response::resposta::dica\n')
-            elif data ==  b'player-question::perguntaa':
+            elif data ==  b'player-question::perguntaa\n':
                 time.sleep(1)
                 print('mestre está respondendo')
                 s.send(b'master-response::true\n')
@@ -32,16 +32,16 @@ def player1():
             data = s.recv(4096)
             print('[player1] ', data)
 
-            if data == b'game-master::player1':
+            if data == b'game-master::player1\n':
                 time.sleep(1)
                 s.send(b'set-response::resposta::dica\n')
 
-            elif data == b'round_player::player1':
+            elif data == b'round_player::player1\n':
                 time.sleep(1)
                 print('mandando pergunta')
                 s.send(b'player-question::perguntaa\n')
 
-            elif data == b'master-response::true':
+            elif data == b'master-response::true\n':
                 print('mestre respondeu... mandando resposta')
                 time.sleep(1)
                 s.send(b'player-response::resposta\n')
@@ -58,11 +58,11 @@ def player2():
             data = s.recv(4096)
             print('[player2] ', data)
 
-            if data == b'round_player::player2':
+            if data == b'round_player::player2\n':
                 time.sleep(1)
                 print('mandando pergunta do jogador 2')
                 s.send(b'player-question::perguntaa\n')
-            elif data == b'master-response::true':
+            elif data == b'master-response::true\n':
                 print('mestre respondeu... mandando resposta')
                 time.sleep(3)
                 s.send(b'player-response::resposta\n')
