@@ -9,9 +9,9 @@ import (
 )
 
 const MatchTime = time.Second * 120
-const MasterTime = time.Second * 10
-const QuestionTime = time.Second * 20
-const MasterAnswerTime = time.Second * 20
+const MasterTime = time.Second * 20
+const QuestionTime = time.Second * 30
+const MasterAnswerTime = time.Second * 30
 
 type MatchManager struct {
 	gameManager *GameManager
@@ -127,9 +127,22 @@ func (matchManager *MatchManager) setMasterResponse(client *Client, response str
 
 }
 
-func (matchManager *MatchManager) playerQuestion() {
-	matchManager.playerQuestionChan <- "aa"
+func (matchManager *MatchManager) playerQuestion(question string) {
+	log.Println("jogador perguntou")
+	matchManager.playerQuestionChan <- question
 }
+
+func (matchManager *MatchManager) masterResponse(response bool) {
+	log.Println("master respondeu")
+	matchManager.masterResponseChan <- response
+}
+
+func (matchManager *MatchManager) playerResponse(response string) {
+	log.Println("jogador respondeu")
+	matchManager.playerResponseChan <- response
+}
+
+
 
 func (matchManager *MatchManager) selectPlayer(index *int) bool {
 
@@ -181,8 +194,12 @@ func (matchManager *MatchManager) matchLoop() {
 
 		playerResponse := <-matchManager.playerResponseChan
 
-
-
+		if playerResponse == matchManager.response {
+			log.Println("Resposta correta")
+			matchManager.gameManager.clientManager.broadcast("player-response::" + matchManager.players[index].name + "::yes")
+		} else {
+			matchManager.gameManager.clientManager.broadcast("player-response::" + matchManager.players[index].name + "::no")
+		}
 	}
 	// index := 0
 
