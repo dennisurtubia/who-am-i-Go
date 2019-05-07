@@ -42,7 +42,7 @@ func (lobbyManager *LobbyManager) setName(client *Client, name string) {
 	}
 
 	// client.data <- []byte(msg)
-	lobbyManager.gameManager.clientManager.send(msg)
+	lobbyManager.gameManager.clientManager.send(client, msg)
 
 }
 
