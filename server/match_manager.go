@@ -32,8 +32,10 @@ type MatchManager struct {
 	masterResponseChan chan string
 	playerResponseChan chan string
 
-
 	finishTime time.Time
+
+	responseStart time.Time
+	responseEnd   time.Time
 }
 
 func (gameManager *GameManager) initGame() {
@@ -63,7 +65,7 @@ func (gameManager *GameManager) initGame() {
 // waitMasterResponse  Escolhe mestre e aguarda resposta e dica.
 func (matchManager *MatchManager) waitMasterResponse() {
 	ticker := time.NewTicker(MasterTime)
-	
+
 	for index := 0; index < len(matchManager.players); index++ {
 		if matchManager.players[index].masterAttempt == false {
 			matchManager.players[index].masterAttempt = true
@@ -92,14 +94,14 @@ func (matchManager *MatchManager) waitMasterResponse() {
 					break
 				}
 			}
-	
+
 			if matchManager.master == nil {
 				log.Println("Não foi possível escolher um mestre")
 				return
 			}
-	
+
 			log.Println("Tentando mestre: " + matchManager.master.name)
-	
+
 			matchManager.gameManager.getClientByName(matchManager.master.name).socket.Write([]byte("game-master::" + matchManager.master.name))
 		case <-matchManager.masterChan:
 			ticker.Stop()
@@ -142,8 +144,6 @@ func (matchManager *MatchManager) playerResponse(response string) {
 	matchManager.playerResponseChan <- response
 }
 
-
-
 func (matchManager *MatchManager) selectPlayer(index *int) bool {
 
 	if matchManager.master == &matchManager.players[*index] {
@@ -155,7 +155,7 @@ func (matchManager *MatchManager) selectPlayer(index *int) bool {
 		return false
 	}
 
-	matchManager.gameManager.clientManager.broadcast("round_player::"+matchManager.players[*index].name)
+	matchManager.gameManager.clientManager.broadcast("round_player::" + matchManager.players[*index].name)
 	(*index)++
 
 	return true
@@ -175,55 +175,31 @@ func (matchManager *MatchManager) matchLoop() {
 			log.Println("acabou")
 			return
 		}
-	
-		matchManager.gameManager.clientManager.broadcast("round_player::"+matchManager.players[index].name)
-		
+
+		matchManager.gameManager.clientManager.broadcast("round_player::" + matchManager.players[index].name)
+
 		playerQuestion := <-matchManager.playerQuestionChan // timeout
-		
+
 		matchManager.gameManager.clientManager.send(matchManager.gameManager.getClientByName(matchManager.master.name), "player-question::"+playerQuestion)
-		
+
 		masterResponse := <-matchManager.masterResponseChan //timeout
-		
+
 		matchManager.gameManager.clientManager.broadcast("master-response::" + masterResponse)
-		
+
+		matchManager.responseStart = time.Now()
 		playerResponse := <-matchManager.playerResponseChan
-		
-		log.Println("resposta do jogador: ", playerResponse, "resposta correta: ", matchManager.response)
-		
+		matchManager.responseEnd = time.Now()
+
 		if playerResponse == matchManager.response {
 			log.Println("Resposta correta")
-			matchManager.gameManager.clientManager.broadcast("player-response::" + matchManager.players[index].name + "::true")
-			} else {
-				matchManager.gameManager.clientManager.broadcast("player-response::" + matchManager.players[index].name + "::false")
-			}
-			index++
+			matchManager.gameManager.getPlayerByName(matchManager.players[index].name).score = int(100 * (1 / matchManager.responseEnd.Sub(matchManager.responseStart).Seconds()))
+			matchManager.gameManager.clientManager.broadcast("player-response::" + matchManager.players[index].name + "::true::" + string(matchManager.gameManager.getPlayerByName(matchManager.players[index].name).score))
+		} else {
+			matchManager.gameManager.clientManager.broadcast("player-response::" + matchManager.players[index].name + "::false")
+		}
+		index++
 	}
-	// index := 0
 
-	// if !matchManager.selectPlayer(&index) {
-	// 	matchManager.matchChan <- true
-	// }
-
-	// ticker := time.NewTicker(QuestionTime)
-
-	// // escolhe jogador e envia request
-
-	// for {
-	// 	select {
-	// 	case <-matchManager.answerChan:
-	// 		if !matchManager.selectPlayer(&index) {
-	// 			matchManager.matchChan <- true
-	// 		}
-		
-	// 		ticker = time.NewTicker(QuestionTime)
-			
-	// 	case <-ticker.C:
-	// 		if !matchManager.selectPlayer(&index) {
-	// 			matchManager.matchChan <- true
-	// 		}
-		
-	// 	}
-	// }
 }
 
 func (matchManager *MatchManager) start() {
@@ -232,13 +208,18 @@ func (matchManager *MatchManager) start() {
 	log.Println("Configurando partida")
 
 	// matchManager.players = make([]Player, 0)
+
+	for index := 0; index < len(matchManager.players); index++ {
+		matchManager.players[index].score = 0
+	}
+
 	matchManager.finishTime = time.Now().Add(MatchTime)
 	matchManager.gameManager.status = Game
 
-	// if len(matchManager.players) < 2 {
-	// 	log.Println("Jogadores insuficientes")
-	// 	return
-	// }
+	if len(matchManager.players) < 2 {
+		log.Println("Jogadores insuficientes")
+		return
+	}
 
 	// Envia nome dos jogadores separados por vírgula [game-init]
 	matchManager.gameManager.status = WaitingForMaster
@@ -250,7 +231,6 @@ func (matchManager *MatchManager) start() {
 
 	playerNamesJoin := strings.Join(playersNames[:], ",")
 	matchManager.gameManager.clientManager.broadcast("game-init::" + playerNamesJoin)
-
 
 	// Espera definição do mestre
 	matchManager.masterChan = make(chan bool, 1)
@@ -268,7 +248,7 @@ func (matchManager *MatchManager) start() {
 
 	matchManager.matchChan = make(chan bool, 1)
 	matchManager.matchLoop()
-	
+
 	select {
 	case <-matchManager.matchChan:
 		break

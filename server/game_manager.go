@@ -25,6 +25,7 @@ type Player struct {
 	name   string
 
 	masterAttempt bool
+	score         int
 }
 
 // GameManager a
@@ -33,8 +34,7 @@ type GameManager struct {
 	lobbyManager  *LobbyManager
 	matchManager  *MatchManager
 
-	status        GameStatus
-
+	status GameStatus
 }
 
 func (gameManager *GameManager) getPlayerByName(name string) *Player {
@@ -86,14 +86,13 @@ func (gameManager *GameManager) start() {
 	log.SetPrefix("GameManager ")
 	log.Println("Start")
 
-
 	gameManager.lobbyManager = &LobbyManager{gameManager: gameManager, players: make([]Player, 0)}
 	gameManager.matchManager = &MatchManager{gameManager: gameManager, players: make([]Player, 0)}
 
 	for {
 
 		gameManager.lobbyManager.start()
-		// copy(gameManager.matchManager.players, gameManager.lobbyManager.players[:])		
+		// copy(gameManager.matchManager.players, gameManager.lobbyManager.players[:])
 		gameManager.matchManager.players = gameManager.lobbyManager.players
 		gameManager.matchManager.start()
 

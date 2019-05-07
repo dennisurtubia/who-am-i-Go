@@ -21,7 +21,7 @@ func main() {
 	log.Println("Executando em " + listener.Addr().String())
 
 	clientManager := ClientManager{
-		clients:    make(map[*Client]bool),
+		clients: make(map[*Client]bool),
 	}
 
 	gameManager := GameManager{}

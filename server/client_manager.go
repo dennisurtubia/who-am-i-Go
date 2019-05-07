@@ -2,9 +2,9 @@ package main
 
 import (
 	"bufio"
+	"log"
 	"net"
 	"strings"
-	"log"
 )
 
 // Client blabla
@@ -29,13 +29,8 @@ func (clientManager *ClientManager) handleClient(client *Client) {
 
 	for scanner.Scan() {
 		message := scanner.Text()
-		
-		
 
 		commands := strings.Split(message, "::")
-
-		log.Println("mensagem do zapp ", commands)
-
 
 		for index := 0; index < len(commands); index++ {
 			commands[index] = strings.TrimSpace(commands[index])
@@ -61,23 +56,25 @@ func (clientManager *ClientManager) handleClient(client *Client) {
 
 					clientManager.gameManager.matchManager.setMasterResponse(client, response, tip)
 				}
-			case "player-question": {
-				log.Println("playerQuestion")
-				question := commands[1]
-				clientManager.gameManager.matchManager.playerQuestion(question)
+			case "player-question":
+				{
+					log.Println("playerQuestion")
+					question := commands[1]
+					clientManager.gameManager.matchManager.playerQuestion(question)
+				}
+
+			case "master-response":
+				{
+					response := commands[1]
+					clientManager.gameManager.matchManager.masterResponse(response)
+				}
+
+			case "player-response":
+				{
+					response := commands[1]
+					clientManager.gameManager.matchManager.playerResponse(response)
+				}
 			}
-
-		case "master-response": {
-			response := commands[1]
-				clientManager.gameManager.matchManager.masterResponse(response)
-		}
-
-	case "player-response": {
-		response := commands[1]
-		clientManager.gameManager.matchManager.playerResponse(response)
-	}
-			}
-
 
 		}
 	}
@@ -86,7 +83,7 @@ func (clientManager *ClientManager) handleClient(client *Client) {
 }
 
 func (clientManager *ClientManager) broadcast(message string) {
-	for client := range(clientManager.clients) {
+	for client := range clientManager.clients {
 		client.socket.Write([]byte(message))
 	}
 }
@@ -112,4 +109,3 @@ func (clientManager *ClientManager) receive(client *Client) {
 		}
 	}
 }
-
