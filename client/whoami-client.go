@@ -1,12 +1,3 @@
-/*
-A very simple TCP client written in Go.
-
-This is a toy project that I used to learn the fundamentals of writing
-Go code and doing some really basic network stuff.
-
-Maybe it will be fun for you to read. It's not meant to be
-particularly idiomatic, or well-written for that matter.
-*/
 package main
 
 import (
@@ -14,66 +5,49 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"regexp"
-	"time"
+	"strings"
 )
-
-
 
 func main() {
 
-
-	conn, err := net.Dial("tcp", ":8080")
+	conn, err := net.Dial("tcp4", ":8080")
 
 	if err != nil {
-		if _, t := err.(*net.OpError); t {
-			fmt.Println("Some problem connecting.")
-		} else {
-			fmt.Println("Unknown error: " + err.Error())
-		}
+		fmt.Println("Não foi possível conectar, por favor, tente novamente")
 		os.Exit(1)
 	}
-
-	go readConnection(conn)
-
-	for {
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Print("> ")
-		text, _ := reader.ReadString('\n')
-
-		conn.SetWriteDeadline(time.Now().Add(1 * time.Second))
-		_, err := conn.Write([]byte(text))
-		if err != nil {
-			fmt.Println("Error writing to stream.")
-			break
-		}
-	}
-}
-
-func readConnection(conn net.Conn) {
-
+		
 	scanner := bufio.NewScanner(conn)
 
 	for scanner.Scan() {
+
+		fmt.Fprintf(conn, "get-game-info")
+
 		message := scanner.Text()
-		fmt.Println("mensagem", message)
-	}
-}
+		commands := strings.Split(message, "::")
+		fmt.Println(commands)
+		fmt.Println("Bem vindo ao quem sou eu")
 
-func handleCommands(text string) bool {
-	r, err := regexp.Compile("^%.*%$")
-	if err == nil {
-		if r.MatchString(text) {
+		conn.Write([]byte("get-game-info"))
 
-			switch {
-			case text == "%quit%":
-				fmt.Println("\b\bServer is leaving. Hanging up.")
-				os.Exit(0)
+		switch commands[0] {
+		case "get-game-info":
+			{
+				fmt.Println("chegou aq")
+				// stateUser, numberOfPlayres := commands[1], commands[2]
+				// if stateUser == "waiting" {
+				// 	fmt.Println("Aguardando o inicio da partida..."+"\n"+"Número de jogadores no momento: ", numberOfPlayres)
+				// 	fmt.Print("\n" + "Para começar, nos forneça seu nickgame: ")
+				// }
 			}
+		case "set-name":
+			{
 
-			return true
+			}
+		case "game-init":
+			{
+
+			}
 		}
 	}
-
-	return false
 }
