@@ -59,9 +59,9 @@ func (gameManager *GameManager) getGameInfo(client *Client) {
 	msg := "get-game-info::"
 
 	if gameManager.status == Lobby {
-		msg += "waiting::" + strconv.Itoa(len(gameManager.lobbyManager.players)) + "::" + strconv.FormatInt(gameManager.lobbyManager.waitingTime.UTC().UnixNano(), 10)
+		msg += "waiting::" + strconv.Itoa(len(gameManager.lobbyManager.players)) + "::" + strconv.FormatInt(gameManager.lobbyManager.waitingTime.Unix(), 10)
 	} else {
-		msg += "ingame::" + strconv.FormatInt(gameManager.matchManager.finishTime.UTC().UnixNano(), 10)
+		msg += "ingame::" + strconv.FormatInt(gameManager.matchManager.finishTime.Unix(), 10)
 	}
 
 	gameManager.clientManager.send(client, msg)

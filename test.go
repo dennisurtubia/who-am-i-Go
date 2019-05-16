@@ -1,21 +1,27 @@
 package main
 
-import "time"
-import "fmt"
-import "strconv"
+import (
+	"log"
+	"strconv"
+	"time"
+)
 
+func main() {
 
+	now := time.Now().Add(time.Hour * 2)
+	tstmp := strconv.FormatInt(now.Unix(), 10)
 
+	str := tstmp
+	i, err := strconv.ParseInt(str, 10, 64)
 
+	if err != nil {
+		log.Print(err)
 
-func main()  {
-
-	time1 := time.Now()
-	time.Sleep(1 * time.Second)
-	time2 := time.Now()
-
-	fmt.Println(strconv.Itoa(int(100 * (1/time2.Sub(time1).Seconds()))))
+	} else {
+		t := time.Unix(i, 0)
+		log.Print(t)
+	}
 }
 
 // precisa travar no loop
-// enquanto 
+// enquanto

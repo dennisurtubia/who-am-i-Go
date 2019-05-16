@@ -1,43 +1,110 @@
-/*
-A very simple TCP client written in Go.
-
-This is a toy project that I used to learn the fundamentals of writing
-Go code and doing some really basic network stuff.
-
-Maybe it will be fun for you to read. It's not meant to be
-particularly idiomatic, or well-written for that matter.
-*/
 package main
 
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"net"
 	"os"
-	"regexp"
+	"strconv"
+	"strings"
 	"time"
 )
 
+type Client struct {
+	conn           net.Conn
+	gameStatusChan chan string
+}
 
+func (client *Client) getGameStatus() {
+	client.send("get-game-info")
+}
+
+func (client *Client) setName(name string) {
+	client.send("set-name::" + name)
+}
+
+func (client *Client) send(message string) {
+	client.conn.Write([]byte(message + "\n"))
+}
+
+func (client *Client) receiveMessages() {
+	scanner := bufio.NewScanner(client.conn)
+
+	for scanner.Scan() {
+		message := scanner.Text()
+		commands := strings.Split(message, "::")
+
+		for index := 0; index < len(commands); index++ {
+			commands[index] = strings.TrimSpace(commands[index])
+		}
+
+		if len(commands) > 0 {
+			switch commands[0] {
+			case "get-game-info":
+				{
+					if commands[1] == "waiting" {
+
+						i, err := strconv.ParseInt(commands[3], 10, 64)
+
+						if err == nil {
+							t := time.Unix(i, 0)
+							log.Println("Atualmente há:", commands[2], "jogadores conectados.")
+							log.Println("Próxima partida inicia em:", int(t.Sub(time.Now()).Seconds()), "segundos.")
+						}
+
+					} else if commands[1] == "ingame" {
+						i, err := strconv.ParseInt(commands[2], 10, 64)
+
+						if err == nil {
+							t := time.Unix(i, 0)
+							log.Println("Partida em andamento.")
+							log.Println("Próxima partida inicia em:", int(t.Sub(time.Now()).Seconds()), "segundos.")
+						}
+					}
+					client.gameStatusChan <- commands[1]
+				}
+			}
+		}
+	}
+}
 
 func main() {
 
+	args := os.Args[1:]
+	serverAddress := args[0]
 
-	conn, err := net.Dial("tcp", ":8080")
+	conn, err := net.Dial("tcp4", serverAddress)
 
 	if err != nil {
-		if _, t := err.(*net.OpError); t {
-			fmt.Println("Some problem connecting.")
-		} else {
-			fmt.Println("Unknown error: " + err.Error())
-		}
-		os.Exit(1)
+		log.Panicln("Não foi possível conectar, tente novamente.")
 	}
 
-	go readConnection(conn)
+	client := Client{conn: conn, gameStatusChan: make(chan string, 1)}
+	go client.receiveMessages()
+
+	log.Println("-------------------------------")
+	log.Println("Bem vindo ao quem sou eu.")
+	log.Println("-------------------------------")
+
+	client.getGameStatus()
 
 	for {
 		reader := bufio.NewReader(os.Stdin)
+
+		select {
+		case msg := <-client.gameStatusChan:
+			{
+				if msg == "waiting" {
+					log.Println("Para começar, nos diga: quem é você?")
+					log.Print("\\> ")
+					text, _ := reader.ReadString('\n')
+
+					client.setName(text)
+				}
+			}
+		}
+
 		fmt.Print("> ")
 		text, _ := reader.ReadString('\n')
 
@@ -48,32 +115,4 @@ func main() {
 			break
 		}
 	}
-}
-
-func readConnection(conn net.Conn) {
-
-	scanner := bufio.NewScanner(conn)
-
-	for scanner.Scan() {
-		message := scanner.Text()
-		fmt.Println("mensagem", message)
-	}
-}
-
-func handleCommands(text string) bool {
-	r, err := regexp.Compile("^%.*%$")
-	if err == nil {
-		if r.MatchString(text) {
-
-			switch {
-			case text == "%quit%":
-				fmt.Println("\b\bServer is leaving. Hanging up.")
-				os.Exit(0)
-			}
-
-			return true
-		}
-	}
-
-	return false
 }
