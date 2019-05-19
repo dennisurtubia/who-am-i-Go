@@ -116,7 +116,34 @@ func (client *Client) receiveMessages() {
 
 			case "game-start":
 				{
+					if commands[1] == client.name {
+						fmt.Println("----------------------")
+						fmt.Println("VOCÊ É O MESTRE")
+						fmt.Println("----------------------")
 
+						i, err := strconv.ParseInt(commands[3], 10, 64)
+
+						if err == nil {
+							t := time.Unix(i, 0)
+							fmt.Println("Partida termina daqui:", int(t.Sub(time.Now()).Minutes()), "minutos.")
+						}
+						fmt.Println("Dica: " + commands[2])
+						fmt.Println("Aguardando respostas...")
+					} else {
+						fmt.Println("----------------------")
+						fmt.Println("PARTIDA INICIADA")
+						fmt.Println("----------------------")
+
+						i, err := strconv.ParseInt(commands[3], 10, 64)
+
+						if err == nil {
+							t := time.Unix(i, 0)
+							fmt.Println("Partida termina daqui:", int(t.Sub(time.Now()).Minutes()), "minutos.")
+						}
+						fmt.Println("Dica: " + commands[2])
+						fmt.Println("Aguardando definição do jogador da vez...")
+
+					}
 				}
 			}
 		}
