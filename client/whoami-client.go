@@ -91,6 +91,32 @@ func (client *Client) receiveMessages() {
 					for _, name := range names {
 						fmt.Printf("\t[%s]\n", name)
 					}
+
+					fmt.Println("Aguardando definição do mestre...")
+				}
+
+			case "game-master":
+				{
+					if commands[1] == client.name {
+						fmt.Println("------------------------------------------------")
+						fmt.Println("VOCÊ FOI ESCOLHIDO COMO MESTRE DA PARTIDA")
+						fmt.Println("------------------------------------------------")
+						fmt.Print("Informe a dica: ")
+
+						tip, _ := reader.ReadString('\n')
+
+						fmt.Print("Informe a resposta: ")
+
+						response, _ := reader.ReadString('\n')
+
+						client.send("set-response::" + tip + "::" + response)
+
+					}
+				}
+
+			case "game-start":
+				{
+
 				}
 			}
 		}
