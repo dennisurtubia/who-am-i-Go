@@ -169,6 +169,28 @@ func (client *Client) receiveMessages() {
 				{
 					fmt.Println("Pergunta do jogador: " + commands[1])
 					fmt.Println("--> " + commands[2])
+
+					response, _ := reader.ReadString('\n')
+					validResponse := false
+
+					for !validResponse {
+						fmt.Println("Responda 's' para SIM e 'n' para não.")
+
+						if response == "s\n" {
+							validResponse = true
+							client.send("master-response::true")
+
+						} else if response == "n\n" {
+							validResponse = true
+							client.send("master-response::false")
+						}
+					}
+
+				}
+
+			case "master-response":
+				{
+
 				}
 
 			default:
