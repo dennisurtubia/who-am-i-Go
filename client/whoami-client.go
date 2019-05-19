@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"strconv"
@@ -12,16 +11,8 @@ import (
 )
 
 type Client struct {
-	conn           net.Conn
-	gameStatusChan chan string
-}
-
-func (client *Client) getGameStatus() {
-	client.send("get-game-info")
-}
-
-func (client *Client) setName(name string) {
-	client.send("set-name::" + name)
+	conn net.Conn
+	name string
 }
 
 func (client *Client) send(message string) {
@@ -30,6 +21,7 @@ func (client *Client) send(message string) {
 
 func (client *Client) receiveMessages() {
 	scanner := bufio.NewScanner(client.conn)
+	reader := bufio.NewReader(os.Stdin)
 
 	for scanner.Scan() {
 		message := scanner.Text()
@@ -49,8 +41,14 @@ func (client *Client) receiveMessages() {
 
 						if err == nil {
 							t := time.Unix(i, 0)
-							log.Println("Atualmente há:", commands[2], "jogadores conectados.")
-							log.Println("Próxima partida inicia em:", int(t.Sub(time.Now()).Seconds()), "segundos.")
+							fmt.Println("Atualmente há:", commands[2], "jogadores conectados.")
+							fmt.Println("Próxima partida inicia em:", int(t.Sub(time.Now()).Seconds()), "segundos.")
+
+							fmt.Println("Para começar, nos diga: quem é você?")
+							fmt.Print("\\> ")
+							text, _ := reader.ReadString('\n')
+							client.send("set-name::" + text)
+
 						}
 
 					} else if commands[1] == "ingame" {
@@ -58,11 +56,41 @@ func (client *Client) receiveMessages() {
 
 						if err == nil {
 							t := time.Unix(i, 0)
-							log.Println("Partida em andamento.")
-							log.Println("Próxima partida inicia em:", int(t.Sub(time.Now()).Seconds()), "segundos.")
+							fmt.Println("Partida em andamento.")
+							fmt.Println("Próxima partida inicia em:", int(t.Sub(time.Now()).Seconds()), "segundos.")
 						}
 					}
-					client.gameStatusChan <- commands[1]
+
+				}
+			case "set-name":
+				{
+					if commands[1] == "player_added" {
+						fmt.Println("Aguardando partida...")
+						client.name = commands[2]
+
+					} else if commands[1] == "already_used" {
+
+						fmt.Println("ERRO: nome atualmente em uso.")
+						fmt.Print("Novo nome: ")
+
+						text, _ := reader.ReadString('\n')
+						client.send("set-name::" + text)
+
+					}
+				}
+
+			case "game-init":
+				{
+					fmt.Println("----------------")
+					fmt.Println("INICIANDO PARTIDA")
+					fmt.Println("----------------")
+					names := strings.Split(commands[1], ",")
+
+					fmt.Println("Jogadores conectados: " + strconv.Itoa(len(names)))
+
+					for _, name := range names {
+						fmt.Printf("\t[%s]\n", name)
+					}
 				}
 			}
 		}
@@ -77,42 +105,46 @@ func main() {
 	conn, err := net.Dial("tcp4", serverAddress)
 
 	if err != nil {
-		log.Panicln("Não foi possível conectar, tente novamente.")
+		fmt.Println("Não foi possível conectar, tente novamente.")
+		return
 	}
 
-	client := Client{conn: conn, gameStatusChan: make(chan string, 1)}
+	client := Client{conn: conn}
 	go client.receiveMessages()
 
-	log.Println("-------------------------------")
-	log.Println("Bem vindo ao quem sou eu.")
-	log.Println("-------------------------------")
+	fmt.Println("-------------------------------")
+	fmt.Println("Bem vindo ao quem sou eu.")
+	fmt.Println("-------------------------------")
 
-	client.getGameStatus()
+	client.send("get-game-info")
 
 	for {
-		reader := bufio.NewReader(os.Stdin)
-
-		select {
-		case msg := <-client.gameStatusChan:
-			{
-				if msg == "waiting" {
-					log.Println("Para começar, nos diga: quem é você?")
-					log.Print("\\> ")
-					text, _ := reader.ReadString('\n')
-
-					client.setName(text)
-				}
-			}
-		}
-
-		fmt.Print("> ")
-		text, _ := reader.ReadString('\n')
-
-		conn.SetWriteDeadline(time.Now().Add(1 * time.Second))
-		_, err := conn.Write([]byte(text))
-		if err != nil {
-			fmt.Println("Error writing to stream.")
-			break
-		}
 	}
+
+	// for {
+	// 	reader := bufio.NewReader(os.Stdin)
+
+	// 	select {
+	// 	case msg := <-client.gameStatusChan:
+	// 		{
+	// 			if msg == "waiting" {
+	// 				fmt.Println("Para começar, nos diga: quem é você?")
+	// 				fmt.Print("\\> ")
+	// 				text, _ := reader.ReadString('\n')
+
+	// 				client.setName(text)
+	// 			}
+	// 		}
+	// 	}
+
+	// 	fmt.Print("> ")
+	// 	text, _ := reader.ReadString('\n')
+
+	// 	conn.SetWriteDeadline(time.Now().Add(1 * time.Second))
+	// 	_, err := conn.Write([]byte(text))
+	// 	if err != nil {
+	// 		fmt.Println("Error writing to stream.")
+	// 		break
+	// 	}
+	// }
 }
