@@ -11,8 +11,9 @@ import (
 )
 
 type Client struct {
-	conn net.Conn
-	name string
+	conn     net.Conn
+	name     string
+	isMaster bool
 }
 
 func (client *Client) send(message string) {
@@ -109,7 +110,7 @@ func (client *Client) receiveMessages() {
 
 						response, _ := reader.ReadString('\n')
 
-						client.send("set-response::" + tip + "::" + response)
+						client.send("set-response::" + strings.TrimSpace(tip) + "::" + response)
 
 					}
 				}
@@ -121,11 +122,13 @@ func (client *Client) receiveMessages() {
 						fmt.Println("VOCÊ É O MESTRE")
 						fmt.Println("----------------------")
 
+						client.isMaster = true
+
 						i, err := strconv.ParseInt(commands[3], 10, 64)
 
 						if err == nil {
 							t := time.Unix(i, 0)
-							fmt.Println("Partida termina daqui:", int(t.Sub(time.Now()).Minutes()), "minutos.")
+							fmt.Println("Partida termina daqui:", int(t.Sub(time.Now()).Seconds()), "segundos.")
 						}
 						fmt.Println("Dica: " + commands[2])
 						fmt.Println("Aguardando respostas...")
@@ -138,19 +141,54 @@ func (client *Client) receiveMessages() {
 
 						if err == nil {
 							t := time.Unix(i, 0)
-							fmt.Println("Partida termina daqui:", int(t.Sub(time.Now()).Minutes()), "minutos.")
+							fmt.Println("Partida termina daqui:", int(t.Sub(time.Now()).Seconds()), "segundos.")
 						}
 						fmt.Println("Dica: " + commands[2])
 						fmt.Println("Aguardando definição do jogador da vez...")
 
 					}
 				}
+
+			case "round-player":
+				{
+					// jogador da vez
+					if commands[1] == client.name {
+						fmt.Print("Digite a pergunta: ")
+
+						question, _ := reader.ReadString('\n')
+
+						client.send("player-question::" + question)
+
+						// mestre
+					} else {
+						fmt.Println("Jogador da vez: " + commands[1])
+					}
+				}
+
+			case "player-question":
+				{
+					fmt.Println("Pergunta do jogador: " + commands[1])
+					fmt.Println("--> " + commands[2])
+				}
+
+			default:
+				{
+					fmt.Println("Comando desconhecido.")
+					fmt.Println(commands)
+
+				}
 			}
+
 		}
 	}
 }
 
 func main() {
+
+	if len(os.Args) != 2 {
+		fmt.Println("[Ajuda] go run client/ 127.0.0.1:8080")
+		return
+	}
 
 	args := os.Args[1:]
 	serverAddress := args[0]
@@ -162,7 +200,7 @@ func main() {
 		return
 	}
 
-	client := Client{conn: conn}
+	client := Client{conn: conn, name: "", isMaster: false}
 	go client.receiveMessages()
 
 	fmt.Println("-------------------------------")

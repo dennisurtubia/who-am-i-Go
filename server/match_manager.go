@@ -85,7 +85,7 @@ func (matchManager *MatchManager) waitMasterResponse() {
 
 	// matchManager.gameManager.getClientByName(matchManager.master.name).data <- []byte("game-master::" + matchManager.master.name)
 
-	matchManager.gameManager.clientManager.send(matchManager.gameManager.getClientByName(matchManager.master.name), "game-master::" + matchManager.master.name)
+	matchManager.gameManager.clientManager.send(matchManager.gameManager.getClientByName(matchManager.master.name), "game-master::"+matchManager.master.name)
 	<-matchManager.masterChan
 	// for {
 	// 	select {
@@ -166,7 +166,6 @@ func (matchManager *MatchManager) selectPlayer(index *int) bool {
 
 func (matchManager *MatchManager) matchLoop() {
 
-
 	for index := 0; index < len(matchManager.players); index++ {
 
 		matchManager.playerQuestionChan = make(chan string, 1)
@@ -184,18 +183,17 @@ func (matchManager *MatchManager) matchLoop() {
 			return
 		}
 
-		matchManager.gameManager.clientManager.broadcast("round_player::" + matchManager.players[index].name)
+		matchManager.gameManager.clientManager.broadcast("round-player::" + matchManager.players[index].name)
 
 		playerQuestion := <-matchManager.playerQuestionChan // timeout
 
-		matchManager.gameManager.clientManager.send(matchManager.gameManager.getClientByName(matchManager.master.name), "player-question::"+playerQuestion)
-
+		matchManager.gameManager.clientManager.send(matchManager.gameManager.getClientByName(matchManager.master.name), "player-question::"+matchManager.players[index].name+"::"+playerQuestion)
 
 		masterResponse := <-matchManager.masterResponseChan //timeout
 
 		log.Println("matato")
 
-		matchManager.gameManager.clientManager.broadcast("master-response::" + masterResponse)
+		matchManager.gameManager.clientManager.broadcast("master-response::" + playerQuestion + "::" + masterResponse)
 
 		matchManager.responseStart = time.Now()
 		playerResponse := <-matchManager.playerResponseChan
@@ -256,10 +254,10 @@ func (matchManager *MatchManager) start() {
 
 	log.Println("Iniciando partida")
 	// matchManager.gameManager.clientManager.broadcast <- []byte("game-start\n")
-	matchManager.gameManager.clientManager.broadcast("game-start::" + matchManager.master.name + "::" + matchManager.tip + "::" + strconv.FormatInt(matchManager.finishTime.UTC().UnixNano(), 10))
+	matchManager.gameManager.clientManager.broadcast("game-start::" + matchManager.master.name + "::" + matchManager.tip + "::" + strconv.FormatInt(matchManager.finishTime.Unix(), 10))
 
 	matchManager.matchChan = make(chan bool, 1)
-	matchManager.matchLoop()
+	go matchManager.matchLoop()
 
 	select {
 	case <-matchManager.matchChan:
@@ -271,14 +269,13 @@ func (matchManager *MatchManager) start() {
 	maxScorePlayer := matchManager.players[0]
 	for index := 0; index < len(matchManager.players); index++ {
 		if matchManager.players[index].score > maxScorePlayer.score {
-			maxScorePlayer =  matchManager.players[index]
+			maxScorePlayer = matchManager.players[index]
 		}
 	}
 
-	winStr :=  "game-end::" + maxScorePlayer.name + "::" + strconv.Itoa(maxScorePlayer.score)
+	winStr := "game-end::" + maxScorePlayer.name + "::" + strconv.Itoa(maxScorePlayer.score)
 	log.Println("Fim da partida: ", winStr)
 	matchManager.gameManager.clientManager.broadcast(winStr)
-
 
 }
 
