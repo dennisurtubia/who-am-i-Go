@@ -1,7 +1,11 @@
 package main
 
 import (
+	"fmt"
+	"io/ioutil"
 	"log"
+	"sort"
+
 	// "math/rand"
 	"strconv"
 	"strings"
@@ -13,6 +17,10 @@ const MasterTime = time.Second * 20
 const QuestionTime = time.Second * 20
 const MasterAnswerTime = time.Second * 20
 
+type Highscore struct {
+	playerName string
+	score      int
+}
 type MatchManager struct {
 	gameManager *GameManager
 
@@ -158,7 +166,7 @@ func (matchManager *MatchManager) selectPlayer(index *int) bool {
 		return false
 	}
 
-	matchManager.gameManager.clientManager.broadcast("round_player::" + matchManager.players[*index].name)
+	matchManager.gameManager.clientManager.broadcast("round-player::" + matchManager.players[*index].name)
 	(*index)++
 
 	return true
@@ -191,9 +199,7 @@ func (matchManager *MatchManager) matchLoop() {
 
 		masterResponse := <-matchManager.masterResponseChan //timeout
 
-		log.Println("matato")
-
-		matchManager.gameManager.clientManager.broadcast("master-response::" + playerQuestion + "::" + masterResponse)
+		matchManager.gameManager.clientManager.broadcast("master-response::" + matchManager.players[index].name + "::" + playerQuestion + "::" + masterResponse)
 
 		matchManager.responseStart = time.Now()
 		playerResponse := <-matchManager.playerResponseChan
@@ -273,9 +279,54 @@ func (matchManager *MatchManager) start() {
 		}
 	}
 
-	winStr := "game-end::" + maxScorePlayer.name + "::" + strconv.Itoa(maxScorePlayer.score)
-	log.Println("Fim da partida: ", winStr)
+	/*
+		retorna nesse formato:
+
+		game-end::jorge::jorge:100,dennis:80,carlos sumare:20
+	*/
+
+	winStr := "game-end::" + maxScorePlayer.name + "::"
+
+	tmp := make([]string, 0)
+	for index := 0; index < len(matchManager.players); index++ {
+		tmp = append(tmp, matchManager.players[index].name+":"+strconv.Itoa((matchManager.players[index].score)))
+	}
+
+	log.Println("Fim da partida: ", winStr+strings.Join(tmp[:], ","))
+
+	b, _ := ioutil.ReadFile("./highscores.txt")
+	s := strings.TrimSpace(string(b))
+
+	lines := strings.Split(s, "\n")
+
+	hscores := make([]Highscore, 0)
+
+	for _, line := range lines {
+		tmp2 := strings.Split(line, ":")
+		name := tmp2[0]
+		score, _ := strconv.Atoi(tmp2[1])
+		hscores = append(hscores, Highscore{playerName: name, score: score})
+	}
+
+	sort.Slice(hscores, func(i, j int) bool {
+		return hscores[i].score > hscores[j].score
+	})
+
+	if len(hscores) > 10 {
+		hscores = hscores[:10]
+	}
+
+	out := ""
+	for _, hscore := range hscores {
+		out += hscore.playerName + ":" + strconv.Itoa(hscore.score) + "\n"
+	}
+
+	fmt.Println(out)
+
+	ioutil.WriteFile("./highscores.txt", []byte(out), 0777)
+
 	matchManager.gameManager.clientManager.broadcast(winStr)
+	matchManager.gameManager.clientManager.broadcast("highscore::" + out)
 
 }
 

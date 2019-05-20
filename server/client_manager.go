@@ -52,8 +52,8 @@ func (clientManager *ClientManager) handleClient(client *Client) {
 
 			case "set-response":
 				{
-					response := commands[1]
-					tip := commands[2]
+					response := commands[2]
+					tip := commands[1]
 
 					clientManager.gameManager.matchManager.setMasterResponse(client, response, tip)
 				}
