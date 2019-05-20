@@ -1,18 +1,21 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"log"
-	"os"
+	"io/ioutil"
+	"sort"
+	"strconv"
+	"strings"
 )
 
-func main() {
-	reader := bufio.NewReader(os.Stdin)
+type Highscore struct {
+	playerName string
+	score      int
+}
 
-	fmt.Print("> ")
-	a, _ := reader.ReadString('\n')
-	log.Println(a)
+func main() {
+
+
 }
 
 // precisa travar no loop
