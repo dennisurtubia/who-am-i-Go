@@ -291,8 +291,8 @@ func (matchManager *MatchManager) start() {
 	for index := 0; index < len(matchManager.players); index++ {
 		tmp = append(tmp, matchManager.players[index].name+":"+strconv.Itoa((matchManager.players[index].score)))
 	}
-
-	log.Println("Fim da partida: ", winStr+strings.Join(tmp[:], ","))
+	winStr = winStr + strings.Join(tmp[:], ",")
+	log.Println("Fim da partida: ", winStr)
 
 	b, _ := ioutil.ReadFile("./highscores.txt")
 	s := strings.TrimSpace(string(b))
@@ -307,7 +307,7 @@ func (matchManager *MatchManager) start() {
 		score, _ := strconv.Atoi(tmp2[1])
 		hscores = append(hscores, Highscore{playerName: name, score: score})
 	}
-
+	hscores = append(hscores, Highscore{playerName: maxScorePlayer.name, score: maxScorePlayer.score})
 	sort.Slice(hscores, func(i, j int) bool {
 		return hscores[i].score > hscores[j].score
 	})
@@ -318,7 +318,7 @@ func (matchManager *MatchManager) start() {
 
 	out := ""
 	for _, hscore := range hscores {
-		out += hscore.playerName + ":" + strconv.Itoa(hscore.score) + "\n"
+		out += hscore.playerName + ":" + strconv.Itoa(hscore.score) + ","
 	}
 
 	fmt.Println(out)

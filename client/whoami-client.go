@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/fatih/color"
 )
 
 type Client struct {
@@ -21,6 +23,10 @@ func (client *Client) send(message string) {
 }
 
 func (client *Client) receiveMessages() {
+	// yellow := color.New(color.FgYellow).SprintFunc()
+	hiBlue := color.New(color.FgHiBlue).SprintFunc()
+	red := color.New(color.FgHiRed).SprintFunc()
+	green := color.New(color.FgHiGreen).SprintFunc()
 	scanner := bufio.NewScanner(client.conn)
 	reader := bufio.NewReader(os.Stdin)
 
@@ -66,12 +72,11 @@ func (client *Client) receiveMessages() {
 			case "set-name":
 				{
 					if commands[1] == "player_added" {
-						fmt.Println("Aguardando partida...")
+						fmt.Print("Aguardando partida...\n\n")
 						client.name = commands[2]
 
 					} else if commands[1] == "already_used" {
-
-						fmt.Println("ERRO: nome atualmente em uso.")
+						fmt.Printf("%s: nome atualmente em uso. \n", red("ERRO"))
 						fmt.Print("Novo nome: ")
 
 						text, _ := reader.ReadString('\n')
@@ -82,9 +87,9 @@ func (client *Client) receiveMessages() {
 
 			case "game-init":
 				{
-					fmt.Println("----------------")
-					fmt.Println("INICIANDO PARTIDA")
-					fmt.Println("----------------")
+					fmt.Println("------------------------------------------------")
+					fmt.Printf("%s\n", green("INICIANDO PARTIDA"))
+					fmt.Print("------------------------------------------------\n\n")
 					names := strings.Split(commands[1], ",")
 
 					fmt.Println("Jogadores conectados: " + strconv.Itoa(len(names)))
@@ -93,14 +98,14 @@ func (client *Client) receiveMessages() {
 						fmt.Printf("\t[%s]\n", name)
 					}
 
-					fmt.Println("Aguardando definição do mestre...")
+					fmt.Print("Aguardando definição do mestre...\n\n")
 				}
 
 			case "game-master":
 				{
 					if commands[1] == client.name {
 						fmt.Println("------------------------------------------------")
-						fmt.Println("VOCÊ FOI ESCOLHIDO COMO MESTRE DA PARTIDA")
+						fmt.Printf("%s\n", green("VOCÊ FOI ESCOLHIDO COMO MESTRE DA PARTIDA"))
 						fmt.Println("------------------------------------------------")
 						fmt.Print("Informe a dica: ")
 
@@ -118,9 +123,9 @@ func (client *Client) receiveMessages() {
 			case "game-start":
 				{
 					if commands[1] == client.name {
-						fmt.Println("----------------------")
-						fmt.Println("VOCÊ É O MESTRE")
-						fmt.Println("----------------------")
+						fmt.Println("------------------------------------------------")
+						fmt.Printf("%s\n", green("VOCÊ É O MESTRE"))
+						fmt.Println("------------------------------------------------")
 
 						client.isMaster = true
 
@@ -133,15 +138,15 @@ func (client *Client) receiveMessages() {
 						fmt.Println("Dica: " + commands[2])
 						fmt.Println("Aguardando respostas...")
 					} else {
-						fmt.Println("----------------------")
-						fmt.Println("PARTIDA INICIADA")
-						fmt.Println("----------------------")
-						fmt.Println("Mestre: " + commands[1])
+						fmt.Println("------------------------------------------------")
+						fmt.Printf("%s\n", hiBlue("PARTIDA INICIADA"))
+						fmt.Print("------------------------------------------------\n\n")
+						fmt.Print("Mestre da partida: " + commands[1] + "\n\n")
 
 						i, err := strconv.ParseInt(commands[3], 10, 64)
 
 						if err == nil {
-							t := time.Unix(i, 0)
+              t := time.Unix(i, 0)
 							fmt.Println("Partida termina daqui:", int(t.Sub(time.Now()).Seconds()), "segundos.")
 						}
 						fmt.Println("Dica: " + commands[2])
@@ -156,7 +161,7 @@ func (client *Client) receiveMessages() {
 
 					//mostrar
 					if commands[1] == client.name {
-						fmt.Println("É a sua vez de perguntar !")
+						fmt.Println("É a sua vez de perguntar!")
 						fmt.Print("Digite a pergunta: ")
 
 						question, _ := reader.ReadString('\n')
@@ -227,7 +232,7 @@ func (client *Client) receiveMessages() {
 					if !client.isMaster {
 						if commands[1] == client.name {
 							if commands[2] == "true" {
-								fmt.Println("Parabéns! Você acertou !!! Sua pontuação: " + commands[3])
+								fmt.Println("Parabéns! Você acertou!!! Sua pontuação: " + commands[3])
 							} else {
 								fmt.Println("Não foi dessa vez ): . Aguarde o fim da partida...")
 							}
@@ -243,14 +248,42 @@ func (client *Client) receiveMessages() {
 
 			case "game-end":
 				{
+					if commands[1] == client.name {
+						fmt.Print("Parabéns, você foi o ganhador!\n\n")
+					}
+					if commands[1] != client.name {
+						fmt.Printf("Ganhador da partida: %s \n\n", commands[1])
+					}
 
+					scorePlayers := strings.Split(commands[2], ",")
+
+					fmt.Println("Jogadores e pontuações: ")
+
+					for _, players := range scorePlayers {
+						fmt.Printf("[%s]\n", players)
+					}
+					fmt.Print("\n")
+					fmt.Println("-----------------------------------------------")
+					fmt.Println("FIM DA PARTIDA")
+					fmt.Println("-----------------------------------------------")
+				}
+
+			case "highscore":
+				{
+					fmt.Println("\nTop 10 jogadores do whoami:")
+
+					highscorePlayers := strings.Split(commands[1], ",")
+
+					for _, i := range highscorePlayers {
+						fmt.Printf("[%s]\n", i)
+					}
 				}
 
 			default:
 				{
 					fmt.Println("Comando desconhecido.")
-					fmt.Println(commands)
-
+					fmt.Println(message)
+					// fmt.Println(commands)
 				}
 			}
 
@@ -259,9 +292,12 @@ func (client *Client) receiveMessages() {
 }
 
 func main() {
-
+	yellow := color.New(color.FgYellow).SprintFunc()
+	red := color.New(color.FgHiRed).SprintFunc()
+	hiBlue := color.New(color.FgHiBlue).SprintFunc()
+	// hiGreen := color.New(color.FgHiGreen).SprintFunc()
 	if len(os.Args) != 2 {
-		fmt.Println("[Ajuda] go run client/ 127.0.0.1:8080")
+		fmt.Printf("%s\n", yellow("[Ajuda] go run client/ 127.0.0.1:8080"))
 		return
 	}
 
@@ -271,7 +307,7 @@ func main() {
 	conn, err := net.Dial("tcp4", serverAddress)
 
 	if err != nil {
-		fmt.Println("Não foi possível conectar, tente novamente.")
+		fmt.Printf("%s: Não foi possível conectar, tente novamente.\n", red("ERRO"))
 		return
 	}
 
@@ -279,7 +315,7 @@ func main() {
 	go client.receiveMessages()
 
 	fmt.Println("-------------------------------")
-	fmt.Println("Bem vindo ao quem sou eu.")
+	fmt.Printf("%s\n.", hiBlue("Bem vindo ao quem sou eu"))
 	fmt.Println("-------------------------------")
 
 	client.send("get-game-info")
