@@ -207,9 +207,11 @@ func (matchManager *MatchManager) matchLoop() {
 
 		if playerResponse == matchManager.response {
 			score := int(100 * (1 / (matchManager.responseEnd.Sub(matchManager.responseStart).Seconds())))
-			log.Println("Resposta correta. Score: ", strconv.Itoa(score))
-			// matchManager.gameManager.getPlayerByName(matchManager.players[index].name).score = int(100 * (1 / matchManager.responseEnd.Sub(matchManager.responseStart).Seconds()))
-			matchManager.gameManager.clientManager.broadcast("player-response::" + matchManager.players[index].name + "::true::" + strconv.Itoa(matchManager.gameManager.getPlayerByName(matchManager.players[index].name).score))
+			// log.Println("Resposta correta. Score: ", strconv.Itoa(score))
+			matchManager.players[index].score = score
+			// player := matchManager.gameManager.getPlayerByName(matchManager.players[index].name)
+			// player.score = score
+			matchManager.gameManager.clientManager.broadcast("player-response::" + matchManager.players[index].name + "::true::" + strconv.Itoa(matchManager.players[index].score))
 		} else {
 			matchManager.gameManager.clientManager.broadcast("player-response::" + matchManager.players[index].name + "::false")
 		}
@@ -272,8 +274,8 @@ func (matchManager *MatchManager) start() {
 		break
 	}
 
-	maxScorePlayer := matchManager.players[0]
-	for index := 0; index < len(matchManager.players); index++ {
+	maxScorePlayer := matchManager.players[1]
+	for index := 2; index < len(matchManager.players); index++ {
 		if matchManager.players[index].score > maxScorePlayer.score {
 			maxScorePlayer = matchManager.players[index]
 		}
@@ -285,48 +287,60 @@ func (matchManager *MatchManager) start() {
 		game-end::jorge::jorge:100,dennis:80,carlos sumare:20
 	*/
 
-	winStr := "game-end::" + maxScorePlayer.name + "::"
+	if maxScorePlayer.score == 0 {
+		matchManager.gameManager.clientManager.broadcast("game-end")
 
-	tmp := make([]string, 0)
-	for index := 0; index < len(matchManager.players); index++ {
-		tmp = append(tmp, matchManager.players[index].name+":"+strconv.Itoa((matchManager.players[index].score)))
+		b, _ := ioutil.ReadFile("./highscores.txt")
+		s := strings.TrimSpace(string(b))
+		matchManager.gameManager.clientManager.broadcast("highscore::" + s)
+
+	} else {
+		winStr := "game-end::" + maxScorePlayer.name + "::"
+
+		tmp := make([]string, 0)
+		for index := 1; index < len(matchManager.players); index++ {
+			tmp = append(tmp, matchManager.players[index].name+":"+strconv.Itoa((matchManager.players[index].score)))
+		}
+		winStr = winStr + strings.Join(tmp[:], ",")
+		log.Println("Fim da partida: ", winStr)
+
+		b, _ := ioutil.ReadFile("./highscores.txt")
+		s := strings.TrimSpace(string(b))
+
+		lines := strings.Split(s, ",")
+
+		hscores := make([]Highscore, 0)
+
+		for _, line := range lines {
+			if len(line) > 0 {
+				tmp2 := strings.Split(line, ":")
+				name := tmp2[0]
+				score, _ := strconv.Atoi(tmp2[1])
+				hscores = append(hscores, Highscore{playerName: name, score: score})
+			}
+		}
+
+		hscores = append(hscores, Highscore{playerName: maxScorePlayer.name, score: maxScorePlayer.score})
+		sort.Slice(hscores, func(i, j int) bool {
+			return hscores[i].score > hscores[j].score
+		})
+
+		if len(hscores) > 10 {
+			hscores = hscores[:10]
+		}
+
+		out := ""
+		for _, hscore := range hscores {
+			out += hscore.playerName + ":" + strconv.Itoa(hscore.score) + ","
+		}
+
+		fmt.Println(out)
+
+		ioutil.WriteFile("./highscores.txt", []byte(out), 0777)
+
+		matchManager.gameManager.clientManager.broadcast(winStr)
+		matchManager.gameManager.clientManager.broadcast("highscore::" + out)
 	}
-	winStr = winStr + strings.Join(tmp[:], ",")
-	log.Println("Fim da partida: ", winStr)
-
-	b, _ := ioutil.ReadFile("./highscores.txt")
-	s := strings.TrimSpace(string(b))
-
-	lines := strings.Split(s, "\n")
-
-	hscores := make([]Highscore, 0)
-
-	for _, line := range lines {
-		tmp2 := strings.Split(line, ":")
-		name := tmp2[0]
-		score, _ := strconv.Atoi(tmp2[1])
-		hscores = append(hscores, Highscore{playerName: name, score: score})
-	}
-	hscores = append(hscores, Highscore{playerName: maxScorePlayer.name, score: maxScorePlayer.score})
-	sort.Slice(hscores, func(i, j int) bool {
-		return hscores[i].score > hscores[j].score
-	})
-
-	if len(hscores) > 10 {
-		hscores = hscores[:10]
-	}
-
-	out := ""
-	for _, hscore := range hscores {
-		out += hscore.playerName + ":" + strconv.Itoa(hscore.score) + ","
-	}
-
-	fmt.Println(out)
-
-	ioutil.WriteFile("./highscores.txt", []byte(out), 0777)
-
-	matchManager.gameManager.clientManager.broadcast(winStr)
-	matchManager.gameManager.clientManager.broadcast("highscore::" + out)
 
 }
 
