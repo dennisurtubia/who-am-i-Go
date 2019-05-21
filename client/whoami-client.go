@@ -146,7 +146,7 @@ func (client *Client) receiveMessages() {
 						i, err := strconv.ParseInt(commands[3], 10, 64)
 
 						if err == nil {
-              t := time.Unix(i, 0)
+							t := time.Unix(i, 0)
 							fmt.Println("Partida termina daqui:", int(t.Sub(time.Now()).Seconds()), "segundos.")
 						}
 						fmt.Println("Dica: " + commands[2])
@@ -248,24 +248,29 @@ func (client *Client) receiveMessages() {
 
 			case "game-end":
 				{
-					if commands[1] == client.name {
-						fmt.Print("Parabéns, você foi o ganhador!\n\n")
-					}
-					if commands[1] != client.name {
-						fmt.Printf("Ganhador da partida: %s \n\n", commands[1])
+					if len(commands) == 1 {
+						fmt.Println("Ninguem venceu!")
+					} else {
+						if commands[1] == client.name {
+							fmt.Print("Parabéns, você foi o ganhador!\n\n")
+						}
+						if commands[1] != client.name {
+							fmt.Printf("Ganhador da partida: %s \n\n", commands[1])
+						}
+
+						scorePlayers := strings.Split(commands[2], ",")
+
+						fmt.Println("Jogadores e pontuações: ")
+
+						for _, players := range scorePlayers {
+							fmt.Printf("[%s]\n", players)
+						}
+						fmt.Print("\n")
+						fmt.Println("-----------------------------------------------")
+						fmt.Println("FIM DA PARTIDA")
+						fmt.Println("-----------------------------------------------")
 					}
 
-					scorePlayers := strings.Split(commands[2], ",")
-
-					fmt.Println("Jogadores e pontuações: ")
-
-					for _, players := range scorePlayers {
-						fmt.Printf("[%s]\n", players)
-					}
-					fmt.Print("\n")
-					fmt.Println("-----------------------------------------------")
-					fmt.Println("FIM DA PARTIDA")
-					fmt.Println("-----------------------------------------------")
 				}
 
 			case "highscore":
@@ -277,6 +282,8 @@ func (client *Client) receiveMessages() {
 					for _, i := range highscorePlayers {
 						fmt.Printf("[%s]\n", i)
 					}
+
+					os.Exit(0)
 				}
 
 			default:

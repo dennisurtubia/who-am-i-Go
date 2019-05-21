@@ -329,17 +329,17 @@ func (matchManager *MatchManager) start() {
 			hscores = hscores[:10]
 		}
 
-		out := ""
+		out := make([]string, 0)
 		for _, hscore := range hscores {
-			out += hscore.playerName + ":" + strconv.Itoa(hscore.score) + ","
+			out = append(out, hscore.playerName+":"+strconv.Itoa(hscore.score))
 		}
 
 		fmt.Println(out)
 
-		ioutil.WriteFile("./highscores.txt", []byte(out), 0777)
+		ioutil.WriteFile("./highscores.txt", []byte(strings.Join(out, ",")), 0777)
 
 		matchManager.gameManager.clientManager.broadcast(winStr)
-		matchManager.gameManager.clientManager.broadcast("highscore::" + out)
+		matchManager.gameManager.clientManager.broadcast("highscore::" + strings.Join(out, ","))
 	}
 
 }
