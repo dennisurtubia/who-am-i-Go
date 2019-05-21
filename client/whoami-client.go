@@ -23,10 +23,12 @@ func (client *Client) send(message string) {
 }
 
 func (client *Client) receiveMessages() {
-	// yellow := color.New(color.FgYellow).SprintFunc()
+	yellow := color.New(color.FgYellow).SprintFunc()
 	hiBlue := color.New(color.FgHiBlue).SprintFunc()
 	red := color.New(color.FgHiRed).SprintFunc()
 	green := color.New(color.FgHiGreen).SprintFunc()
+	magenta := color.New(color.FgHiMagenta).SprintFunc()
+
 	scanner := bufio.NewScanner(client.conn)
 	reader := bufio.NewReader(os.Stdin)
 
@@ -48,8 +50,8 @@ func (client *Client) receiveMessages() {
 
 						if err == nil {
 							t := time.Unix(i, 0)
-							fmt.Println("Atualmente há:", commands[2], "jogadores conectados.")
-							fmt.Println("Próxima partida inicia em:", int(t.Sub(time.Now()).Seconds()), "segundos.")
+							fmt.Print("Atualmente há:", commands[2], "jogadores conectados.\n\n")
+							fmt.Print("Próxima partida inicia em:", int(t.Sub(time.Now()).Seconds()), "segundos.\n\n")
 
 							fmt.Println("Para começar, nos diga: quem é você?")
 							fmt.Print("\\> ")
@@ -133,9 +135,9 @@ func (client *Client) receiveMessages() {
 
 						if err == nil {
 							t := time.Unix(i, 0)
-							fmt.Println("Partida termina daqui:", int(t.Sub(time.Now()).Seconds()), "segundos.")
+							fmt.Print("Partida termina daqui:", int(t.Sub(time.Now()).Seconds()), "segundos.\n")
 						}
-						fmt.Println("Dica: " + commands[2])
+						fmt.Print("Dica: " + commands[2] + "\n\n")
 						fmt.Println("Aguardando respostas...")
 					} else {
 						fmt.Println("------------------------------------------------")
@@ -161,8 +163,8 @@ func (client *Client) receiveMessages() {
 
 					//mostrar
 					if commands[1] == client.name {
-						fmt.Println("É a sua vez de perguntar!")
-						fmt.Print("Digite a pergunta: ")
+						fmt.Print("É a sua vez de perguntar!\n\n")
+						fmt.Print("Digite a pergunta: \n\n")
 
 						question, _ := reader.ReadString('\n')
 
@@ -170,7 +172,7 @@ func (client *Client) receiveMessages() {
 
 						// mestre
 					} else {
-						fmt.Println("Jogador da vez: " + commands[1])
+						fmt.Printf("Jogador da vez: %s\n\n", commands[1])
 					}
 				}
 
@@ -182,7 +184,7 @@ func (client *Client) receiveMessages() {
 					validResponse := false
 
 					for !validResponse {
-						fmt.Println("Responda 's' para SIM e 'n' para não.")
+						fmt.Printf("[Ajuda] %s", yellow("Responda 's' para SIM e 'n' para não\n"))
 						fmt.Print("\\> ")
 						response, _ := reader.ReadString('\n')
 
@@ -204,19 +206,19 @@ func (client *Client) receiveMessages() {
 
 						if commands[1] != client.name {
 
-							fmt.Printf("%s perguntou: %s\n", commands[1], commands[2])
+							fmt.Printf("%s perguntou: %s\n\n", commands[1], commands[2])
 						}
 
 						if commands[3] == "true" {
 
-							fmt.Println("A resposta para a pergunta é: SIM! ")
+							fmt.Print("A resposta para a pergunta é: SIM! \n\n")
 						} else if commands[3] == "false" {
-							fmt.Println("A resposta para a pergunta é: NÃO ):")
+							fmt.Print("A resposta para a pergunta é: NÃO ):\n\n")
 						}
 
 						if commands[1] == client.name {
 
-							fmt.Println("Você tem direito a tentar uma resposta.")
+							fmt.Print("Você tem direito a tentar uma resposta.\n\n")
 							fmt.Print("\\> ")
 
 							response, _ := reader.ReadString('\n')
@@ -232,15 +234,15 @@ func (client *Client) receiveMessages() {
 					if !client.isMaster {
 						if commands[1] == client.name {
 							if commands[2] == "true" {
-								fmt.Println("Parabéns! Você acertou!!! Sua pontuação: " + commands[3])
+								fmt.Printf("Parabéns! Você acertou!!! Sua pontuação: %s\n\n", commands[3])
 							} else {
-								fmt.Println("Não foi dessa vez ): . Aguarde o fim da partida...")
+								fmt.Print("Não foi dessa vez ): . Aguarde o fim da partida...\n\n")
 							}
 						} else {
 							if commands[2] == "true" {
-								fmt.Printf("%s acertou e fez %s pontos.\n", commands[1], commands[3])
+								fmt.Printf("%s acertou e fez %s pontos.\n\n", commands[1], commands[3])
 							} else {
-								fmt.Printf("%s error.\n", commands[1])
+								fmt.Printf("%s error.\n\n", commands[1])
 							}
 						}
 					}
@@ -263,11 +265,12 @@ func (client *Client) receiveMessages() {
 						fmt.Println("Jogadores e pontuações: ")
 
 						for _, players := range scorePlayers {
-							fmt.Printf("[%s]\n", players)
+							a := strings.Split(players, ":")
+							fmt.Printf("%s: %s, %s: %s\n", magenta("Nome"), a[0], magenta("Pontuação"), a[1])
 						}
 						fmt.Print("\n")
 						fmt.Println("-----------------------------------------------")
-						fmt.Println("FIM DA PARTIDA")
+						fmt.Printf("%s\n", green("FIM DA PARTIDA"))
 						fmt.Println("-----------------------------------------------")
 					}
 
@@ -280,7 +283,8 @@ func (client *Client) receiveMessages() {
 					highscorePlayers := strings.Split(commands[1], ",")
 
 					for _, i := range highscorePlayers {
-						fmt.Printf("[%s]\n", i)
+						final := strings.Split(i, ":")
+						fmt.Printf("%s: %s, %s: %s\n", magenta("Nome"), final[0], magenta("Pontuação"), final[1])
 					}
 
 					os.Exit(0)
@@ -289,8 +293,6 @@ func (client *Client) receiveMessages() {
 			default:
 				{
 					fmt.Println("Comando desconhecido.")
-					fmt.Println(message)
-					// fmt.Println(commands)
 				}
 			}
 
@@ -302,7 +304,6 @@ func main() {
 	yellow := color.New(color.FgYellow).SprintFunc()
 	red := color.New(color.FgHiRed).SprintFunc()
 	hiBlue := color.New(color.FgHiBlue).SprintFunc()
-	// hiGreen := color.New(color.FgHiGreen).SprintFunc()
 	if len(os.Args) != 2 {
 		fmt.Printf("%s\n", yellow("[Ajuda] go run client/ 127.0.0.1:8080"))
 		return

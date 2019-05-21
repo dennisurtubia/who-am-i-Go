@@ -319,8 +319,12 @@ func (matchManager *MatchManager) start() {
 				hscores = append(hscores, Highscore{playerName: name, score: score})
 			}
 		}
+		for _, player := range matchManager.players[1:] {
+			if player.score != 0 {
+				hscores = append(hscores, Highscore{playerName: player.name, score: player.score})
+			}
+		}
 
-		hscores = append(hscores, Highscore{playerName: maxScorePlayer.name, score: maxScorePlayer.score})
 		sort.Slice(hscores, func(i, j int) bool {
 			return hscores[i].score > hscores[j].score
 		})
